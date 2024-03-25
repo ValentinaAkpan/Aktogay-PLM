@@ -506,3 +506,5 @@ fig_seasonal = go.Figure(data=[go.Bar(x=seasonal_performance['Season'], y=season
                                       marker_color='#00B7F1')])
 fig_seasonal.update_layout(xaxis_title='Season', yaxis_title='Average Truck Fill Rate (%)', template='plotly_white')
 st.plotly_chart(fig_seasonal)
+
+
