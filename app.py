@@ -110,7 +110,7 @@ def plot_distribution(shovel_fill_data, shovel, desired_mean=100, desired_std=5)
 
 
 def main():
-    st.title("Truck Fill Distribution Analysis")
+    st.title("Actual vs. desired Truck Fill Distribution Analysis")
 
     # Get all available shovels dynamically
     all_shovels = set()
@@ -190,7 +190,7 @@ import plotly.graph_objects as go
 
 # Assuming 'hourly_performance' and 'data' DataFrames, along with 'material_categories', are defined above this code.
 
-st.title('Truck Fill Rate Analysis')
+st.title('Truck Fill Rate Analysis by Month')
 
 # Define all months and add "All" option
 month_options = ['All'] + list(calendar.month_abbr[1:])
@@ -274,7 +274,7 @@ import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
 
-st.title('Hourly Performance: Truck Fill Rate by Shift')
+st.title('Hourly Performance: Truck Fill Rate by Shift (7 am - 7 pm vs. 7 pm - 7 am')
 
 # Step 1: Read the CSV files and concatenate them into a single DataFrame
 file_paths = [
