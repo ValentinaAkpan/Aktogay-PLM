@@ -170,7 +170,7 @@ data['Month'] = data['Time Full'].dt.month.apply(lambda x: calendar.month_abbr[x
 data['Hour'] = data['Time Full'].dt.hour
 
 # Exclude rows with zero or NaN in 'Truck Factor' or 'Tonnage'
-data = data[(data['Truck Factor'] != 0) & (data['Tonnage'] != 0)].dropna(subset=['Truck Factor', 'Tonnage'])
+data = data[(data['Tonnage'] != 0) & (data['Truck Factor'] != 0)].dropna(subset=['Truck Factor', 'Tonnage'])
 
 # Calculate 'Truck Fill Rate (%)' with two decimal places
 data['Truck Fill Rate (%)'] = ((data['Truck Factor'] / data['Tonnage']) * 100).round(2)
