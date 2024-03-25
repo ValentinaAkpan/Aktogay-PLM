@@ -5,11 +5,6 @@ import plotly.graph_objects as go
 import streamlit as st
 import calendar
 
-import pandas as pd
-import numpy as np
-from scipy.stats import norm
-import plotly.graph_objects as go
-import streamlit as st
 
 def load_data(shovel):
     path_to_csvs = './'
@@ -238,7 +233,6 @@ import calendar
 import pandas as pd
 import plotly.graph_objects as go
 
-# Assuming 'hourly_performance' and 'data' DataFrames, along with 'material_categories', are defined above this code.
 
 st.title('Truck Fill Rate Analysis')
 
@@ -293,18 +287,52 @@ import streamlit as st
 import plotly.graph_objects as go
 import pandas as pd
 
-# Assuming 'data' is your DataFrame loaded from the CSV
+# Load data
+file_paths = [
+    'Load DetailApril2023.csv',
+    'Load DetailAugust2023.1-15.csv',
+    'Load DetailSeptember2023.csv',
+    'Load DetailAugust2023.16-31.csv',
+    'Load DetailDecember1-15.2023.csv',
+    'Load DetailDecember16-31.2023.csv',
+    'Load DetailFebruary2023.csv',
+    'Load DetailJanuary2023.csv',
+    'Load DetailJuly2023.csv',
+    'Load DetailJUNE2023.csv',
+    'Load DetailMarch2023.csv',
+    'Load DetailMay2023.csv',
+    'Load DetailNovember1-15.2023.csv',
+    'Load DetailNovember16-30.2023.csv'
+]
+
+@st.cache(allow_output_mutation=True)
+def load_data(file_paths):
+    data = pd.concat([pd.read_csv(file) for file in file_paths])
+    return data
 
 def main():
     st.subheader('Material Destination Analysis')
 
+    # Load data for all shovels
+    data = load_data(file_paths)
+
+    # Create a multi-select dropdown for shovel selection
+    all_shovels = ['All'] + data['Shovel'].unique().tolist()
+    selected_shovels = st.multiselect("Select Shovels", all_shovels, default=['All'])
+
+    # Filter data for the selected shovels
+    if 'All' in selected_shovels:
+        shovel_data = data
+    else:
+        shovel_data = data[data['Shovel'].isin(selected_shovels)]
+
     # Drop rows with any NaN values in the dataframe to avoid errors in processing
-    data_cleaned = data.dropna()
+    data_cleaned = shovel_data.dropna()
 
     # Filter and summarize tonnage for each destination category
     crusher_tonnage = data_cleaned[data_cleaned['Assigned Dump'].str.contains('CRUSHER')]['Tonnage'].sum()
     dlp_tonnage = data_cleaned[data_cleaned['Assigned Dump'].str.contains('DLP')]['Tonnage'].sum()
-    
+
     # For stockpiles, assuming everything not going to the crusher or DLP
     stockpile_tonnage = data_cleaned[~data_cleaned['Assigned Dump'].str.contains('CRUSHER|DLP', regex=True)]['Tonnage'].sum()
 
@@ -340,8 +368,6 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
 
 import streamlit as st
 import pandas as pd
@@ -419,39 +445,64 @@ fig.update_layout(title='Hourly Performance: Truck Fill Rate by Shift',
 # Show the figure
 st.plotly_chart(fig)
 
-# Find the best and worst performing hours for each shift
-best_hours = hourly_performance.groupby('Shift').apply(lambda x: x.nlargest(3, 'Truck Fill Rate (%)')).reset_index(drop=True)
-worst_hours = hourly_performance.groupby('Shift').apply(lambda x: x.nsmallest(3, 'Truck Fill Rate (%)')).reset_index(drop=True)
 
-# Generate analysis report
-analysis_report = """
- Analysis Report:
-----------------------
+import pandas as pd
+import plotly.graph_objects as go
+import streamlit as st
 
-Key Findings:
-1. Best Performing Hours:
-{best_hours}
+file_paths = [
+    'Load DetailApril2023.csv',
+    'Load DetailAugust2023.1-15.csv',
+    'Load DetailSeptember2023.csv',
+    'Load DetailAugust2023.16-31.csv',
+    'Load DetailDecember1-15.2023.csv',
+    'Load DetailDecember16-31.2023.csv',
+    'Load DetailFebruary2023.csv',
+    'Load DetailJanuary2023.csv',
+    'Load DetailJuly2023.csv',
+    'Load DetailJUNE2023.csv',
+    'Load DetailMarch2023.csv',
+    'Load DetailMay2023.csv',
+    'Load DetailNovember1-15.2023.csv',
+    'Load DetailNovember16-30.2023.csv'
+]
 
-2. Worst Performing Hours:
-{worst_hours}
-"""
+def month_to_season(month):
+    if month in [12, 1, 2]:
+        return 'Winter'
+    elif month in [3, 4, 5]:
+        return 'Spring'
+    elif month in [6, 7, 8]:
+        return 'Summer'
+    elif month in [9, 10, 11]:
+        return 'Fall'
 
-# Format best hours information
-best_hours_info = ""
-for shift, hours in best_hours.groupby('Shift'):
-    best_hours_info += f"- {shift}:\n"
-    for i, hour_data in hours.iterrows():
-        best_hours_info += f"  - Hour {hour_data['Hour']}: {hour_data['Truck Fill Rate (%)']:.2f}%\n"
-    best_hours_info += "\n"
+@st.cache(allow_output_mutation=True)
+def load_data(file_paths):
+    data = pd.concat([pd.read_csv(file) for file in file_paths])
+    data['Time Full'] = pd.to_datetime(data['Time Full'])
+    data['Hour'] = data['Time Full'].dt.hour
+    data['Month'] = data['Time Full'].dt.month
+    data['Season'] = data['Month'].apply(month_to_season)
+    return data
 
-# Format worst hours information
-worst_hours_info = ""
-for shift, hours in worst_hours.groupby('Shift'):
-    worst_hours_info += f"- {shift}:\n"
-    for i, hour_data in hours.iterrows():
-        worst_hours_info += f"  - Hour {hour_data['Hour']}: {hour_data['Truck Fill Rate (%)']:.2f}%\n"
-    worst_hours_info += "\n"
+data = load_data(file_paths)
 
-# Display the analysis report
-st.markdown(analysis_report.format(best_hours=best_hours_info, worst_hours=worst_hours_info))
+# Create a dropdown for shovel selection
+selected_shovel = st.selectbox("Select Shovel", data['Shovel'].unique())
 
+# Filter data for the selected shovel
+shovel_data = data[(data['Shovel'] == selected_shovel) & (data['Truck Factor'] != 0) & (data['Tonnage'] != 0)].dropna(subset=['Truck Factor', 'Tonnage'])
+shovel_data['Truck Fill Rate (%)'] = (shovel_data['Tonnage'] / shovel_data['Truck Factor']) * 100
+
+# Seasonal Performance
+seasonal_performance = shovel_data.groupby('Season')['Truck Fill Rate (%)'].mean().reset_index()
+
+# Seasonal Trend Visualization
+st.title(f'Seasonal Truck Fill Rate Trends for {selected_shovel}')
+fig_seasonal = go.Figure(data=[go.Bar(x=seasonal_performance['Season'], y=seasonal_performance['Truck Fill Rate (%)'],
+                                      text=seasonal_performance['Truck Fill Rate (%)'].apply(lambda x: f"{x:.2f}%"),
+                                      textposition='auto',
+                                      marker_color='#00B7F1')])
+fig_seasonal.update_layout(xaxis_title='Season', yaxis_title='Average Truck Fill Rate (%)', template='plotly_white')
+st.plotly_chart(fig_seasonal)
