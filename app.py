@@ -239,36 +239,47 @@ else:
 
 st.plotly_chart(fig)
 
-# Material Analysis
-st.subheader('Material Analysis')
-
-# Filter data for selected months
-filtered_data = data[data['Month'].isin(selected_months)]
-
-# Count occurrences of each material category
-material_counts = {category: filtered_data[filtered_data['Material'] == category].shape[0] for category in material_categories}
-
-# Create bar chart
-material_fig = go.Figure(data=[go.Bar(
-    x=list(material_counts.keys()),
-    y=list(material_counts.values()),
-    text=list(material_counts.values()),
-    textposition='auto',
-    marker_color=['#0693e3', '#8ed1fc', '#0693e3', '#d62728'],  # Colors for each category
-    name='Material'  # Legend name
-)])
-
-material_fig.update_layout(
-                       xaxis_title='Material',
-                       yaxis_title='Count',
-                       legend=dict(title='Material Legend', orientation='h', yanchor='bottom', y=1.02, xanchor='right', x=1))
-
-st.plotly_chart(material_fig)
+import streamlit as st
+import plotly.graph_objects as go
 
 
+def main():
+    st.subheader('Material Analysis')
+
+
+
+    # Categorizing materials: HG, LG, and material directed to the Crusher
+    hg_tonnage = data[data['Material'] == 'HG']['Tonnage'].sum()
+    lg_tonnage = data[data['Material'].str.contains('LG')]['Tonnage'].sum()
+    crusher_tonnage = data[data['Assigned Dump'] == 'CRUSHER']['Tonnage'].sum()
+
+    # Creating a dictionary for material counts (tonnage in this context)
+    material_tonnage = {
+        'High Grade (HG)': hg_tonnage,
+        'Low Grade (LG)': lg_tonnage,
+        'Crusher': crusher_tonnage
+    }
+
+    # Create bar chart
+    material_fig = go.Figure(data=[go.Bar(
+        x=list(material_tonnage.keys()),
+        y=list(material_tonnage.values()),
+        text=[f"{v:,.0f}" for v in material_tonnage.values()],  # Format numbers with commas
+        textposition='auto',
+        marker_color=['#0693e3', '#8ed1fc', '#d62728'],  # Colors for each category
+        name='Material Tonnage'  # Legend name
+    )])
+
+    material_fig.update_layout(
+                           xaxis_title='Material Category',
+                           yaxis_title='Tonnage',
+                           legend=dict(title='Material Legend', orientation='h', yanchor='bottom', y=1.02, xanchor='right', x=1))
+
+    st.plotly_chart(material_fig)
 
 if __name__ == "__main__":
     main()
+
 
 import streamlit as st
 import pandas as pd
