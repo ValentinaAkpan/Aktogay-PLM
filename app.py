@@ -5,23 +5,30 @@ import plotly.graph_objects as go
 import streamlit as st
 import calendar
 
+import pandas as pd
+import numpy as np
+from scipy.stats import norm
+import plotly.graph_objects as go
+import streamlit as st
 
 def load_data(shovel):
     path_to_csvs = './'
-    months = ['Load DetailApril2023',
-              'Load DetailAugust2023.1-15',
-              'Load DetailSeptember2023',
-              'Load DetailAugust2023.16-31',
-              'Load DetailDecember1-15.2023',
-              'Load DetailDecember16-31.2023',
-              'Load DetailFebruary2023',
-              'Load DetailJanuary2023',
-              'Load DetailJuly2023',
-              'Load DetailJUNE2023',
-              'Load DetailMarch2023',
-              'Load DetailMay2023',
-              'Load DetailNovember1-15.2023',
-              'Load DetailNovember16-30.2023']  
+    months = [
+        'Load DetailApril2023',
+        'Load DetailAugust2023.1-15',
+        'Load DetailSeptember2023',
+        'Load DetailAugust2023.16-31',
+        'Load DetailDecember1-15.2023',
+        'Load DetailDecember16-31.2023',
+        'Load DetailFebruary2023',
+        'Load DetailJanuary2023',
+        'Load DetailJuly2023',
+        'Load DetailJUNE2023',
+        'Load DetailMarch2023',
+        'Load DetailMay2023',
+        'Load DetailNovember1-15.2023',
+        'Load DetailNovember16-30.2023'
+    ]  
 
     shovel_fill_data = []
 
@@ -31,10 +38,8 @@ def load_data(shovel):
             month_data = pd.read_csv(file_path)
             
             if 'Tonnage' in month_data.columns and 'Truck Factor' in month_data.columns and 'Shovel' in month_data.columns:
-                # Ensure Truck Factor is not zero to avoid division by zero errors
                 month_data = month_data[month_data['Truck Factor'] > 0]
                 filtered_data = month_data[month_data['Shovel'] == shovel]
-                # Calculate Truck Fill as Tonnage divided by Truck Factor, multiplied by 100 for percentage
                 truck_fill_percentage = (filtered_data['Tonnage'] / filtered_data['Truck Factor']) * 100
                 shovel_fill_data.extend(truck_fill_percentage.dropna())
           
@@ -43,35 +48,34 @@ def load_data(shovel):
 
     return shovel_fill_data
 
-
 def plot_distribution(shovel_fill_data, shovel, desired_mean=100, desired_std=5):
+    if not shovel_fill_data:
+        st.write("No data available for the selected shovel.")
+        return
+
     actual_mean = np.mean(shovel_fill_data)
     actual_std = np.std(shovel_fill_data)
 
-    # Dynamically determine the x-axis range with padding
-    x_min = min(min(shovel_fill_data), desired_mean - 3 * desired_std)
-    x_max = max(max(shovel_fill_data), desired_mean + 3 * desired_std)
-    x_range_padding = (x_max - x_min) * 0.05  # 5% padding on each side
-    x_range = np.linspace(x_min - x_range_padding, x_max + x_range_padding, 200)
+    x_min = min(shovel_fill_data) * 0.9
+    x_max = max(shovel_fill_data) * 1.1
+    x_range = np.linspace(x_min, x_max, 200)
 
     actual_distribution_y = norm.pdf(x_range, actual_mean, actual_std)
     desired_distribution_y = norm.pdf(x_range, desired_mean, desired_std)
-
-    # Determine the maximum y-value for the y-axis range dynamically
-    y_max = max(max(actual_distribution_y), max(desired_distribution_y)) * 1.1
-
-    fig = go.Figure()
-
-    fig.add_trace(go.Scatter(x=x_range, y=actual_distribution_y, mode='lines', name=f'Actual Distribution for {shovel}', line=dict(color='red')))
-    fig.add_trace(go.Scatter(x=x_range, y=desired_distribution_y, mode='lines', name='Desired Distribution', line=dict(color='#00B7F1')))
-
-    fig.add_trace(go.Scatter(x=[actual_mean, actual_mean], y=[0, max(actual_distribution_y)], mode='lines', name='Actual Mean', line=dict(color='red', dash='dash')))
-    fig.add_trace(go.Scatter(x=[desired_mean, desired_mean], y=[0, max(desired_distribution_y)], mode='lines', name='Desired Mean', line=dict(color='#00B7F1', dash='dash')))
 
     mean_std_text = (f"<b>Actual Mean:</b> {actual_mean:.2f}%<br>"
                      f"<b>Actual Std Dev:</b> {actual_std:.2f}%<br>"
                      f"<b>Desired Mean:</b> {desired_mean}%<br>"
                      f"<b>Desired Std Dev:</b> {desired_std}%")
+
+    fig = go.Figure()
+
+    fig.add_trace(go.Scatter(x=x_range, y=actual_distribution_y, mode='lines', name='Actual Distribution', line=dict(color='red')))
+    fig.add_trace(go.Scatter(x=x_range, y=desired_distribution_y, mode='lines', name='Desired Distribution', line=dict(color='#00B7F1')))
+
+    fig.add_trace(go.Scatter(x=[actual_mean, actual_mean], y=[0, max(actual_distribution_y)], mode='lines', name='Actual Mean', line=dict(color='red', dash='dash')))
+    fig.add_trace(go.Scatter(x=[desired_mean, desired_mean], y=[0, max(desired_distribution_y)], mode='lines', name='Desired Mean', line=dict(color='#00B7F1', dash='dash')))
+
     fig.add_annotation(
         text=mean_std_text,
         align='left',
@@ -91,10 +95,7 @@ def plot_distribution(shovel_fill_data, shovel, desired_mean=100, desired_std=5)
         title=f'Actual vs Desired Truck Fill Distribution for {shovel}',
         xaxis_title='Truck Fill %',
         yaxis_title='Probability Density',
-        xaxis=dict(range=[x_min - x_range_padding, x_max + x_range_padding], dtick=10),
-        yaxis=dict(range=[0, y_max], dtick=0.01),
         legend_title='Legend',
-        margin=dict(r=250, t=100),  # Adjusted right margin for annotations
         height=600,
         width=1200,
         legend=dict(
@@ -107,6 +108,55 @@ def plot_distribution(shovel_fill_data, shovel, desired_mean=100, desired_std=5)
     )
 
     st.plotly_chart(fig)
+
+def main():
+    st.title("Truck Fill Distribution Analysis")
+
+    # Dynamic shovel extraction and loading data logic remains
+    # Dynamic shovel extraction and loading data logic remains unchanged.
+    path_to_csvs = './'
+    months = [
+        'Load DetailApril2023',
+        'Load DetailAugust2023.1-15',
+        'Load DetailSeptember2023',
+        'Load DetailAugust2023.16-31',
+        'Load DetailDecember1-15.2023',
+        'Load DetailDecember16-31.2023',
+        'Load DetailFebruary2023',
+        'Load DetailJanuary2023',
+        'Load DetailJuly2023',
+        'Load DetailJUNE2023',
+        'Load DetailMarch2023',
+        'Load DetailMay2023',
+        'Load DetailNovember1-15.2023',
+        'Load DetailNovember16-30.2023'
+    ]
+
+    # Dynamically get the list of shovels from the dataset
+    shovels = set()
+    for month in months:
+        try:
+            month_data = pd.read_csv(f'{path_to_csvs}Cleaned_{month}.csv')
+            shovels.update(month_data['Shovel'].dropna().unique())
+        except FileNotFoundError:
+            st.error(f"File not found: Cleaned_{month}.csv")
+
+    if not shovels:
+        st.error("No shovel data available. Please check the dataset.")
+        return
+
+    selected_shovel = st.selectbox("Select a Shovel", sorted(list(shovels)))
+    shovel_fill_data = load_data(selected_shovel)
+
+    if shovel_fill_data:
+        plot_distribution(shovel_fill_data, selected_shovel)
+    else:
+        st.write("No fill data available for the selected shovel. Please select a different shovel.")
+
+if __name__ == "__main__":
+    main()
+
+
 
 
 def main():
@@ -241,44 +291,56 @@ st.plotly_chart(fig)
 
 import streamlit as st
 import plotly.graph_objects as go
+import pandas as pd
 
+# Assuming 'data' is your DataFrame loaded from the CSV
 
 def main():
-    st.subheader('Material Analysis')
+    st.subheader('Material Destination Analysis')
 
+    # Drop rows with any NaN values in the dataframe to avoid errors in processing
+    data_cleaned = data.dropna()
 
+    # Filter and summarize tonnage for each destination category
+    crusher_tonnage = data_cleaned[data_cleaned['Assigned Dump'].str.contains('CRUSHER')]['Tonnage'].sum()
+    dlp_tonnage = data_cleaned[data_cleaned['Assigned Dump'].str.contains('DLP')]['Tonnage'].sum()
+    
+    # For stockpiles, assuming everything not going to the crusher or DLP
+    stockpile_tonnage = data_cleaned[~data_cleaned['Assigned Dump'].str.contains('CRUSHER|DLP', regex=True)]['Tonnage'].sum()
 
-    # Categorizing materials: HG, LG, and material directed to the Crusher
-    hg_tonnage = data[data['Material'] == 'HG']['Tonnage'].sum()
-    lg_tonnage = data[data['Material'].str.contains('LG')]['Tonnage'].sum()
-    crusher_tonnage = data[data['Assigned Dump'] == 'CRUSHER']['Tonnage'].sum()
+    # High Grade (HG) and Low Grade (LG) materials summary
+    hg_tonnage = data_cleaned[data_cleaned['Material'] == 'HG']['Tonnage'].sum()
+    lg_tonnage = data_cleaned[data_cleaned['Material'].str.contains('LG')]['Tonnage'].sum()
 
-    # Creating a dictionary for material counts (tonnage in this context)
-    material_tonnage = {
+    # Creating a dictionary for destination tonnage
+    destination_tonnage = {
         'High Grade (HG)': hg_tonnage,
         'Low Grade (LG)': lg_tonnage,
-        'Crusher': crusher_tonnage
+        'Crusher': crusher_tonnage,
+        'Acid Leach Pad (DLP)': dlp_tonnage,
+        'Stockpiles': stockpile_tonnage
     }
 
     # Create bar chart
-    material_fig = go.Figure(data=[go.Bar(
-        x=list(material_tonnage.keys()),
-        y=list(material_tonnage.values()),
-        text=[f"{v:,.0f}" for v in material_tonnage.values()],  # Format numbers with commas
+    destination_fig = go.Figure(data=[go.Bar(
+        x=list(destination_tonnage.keys()),
+        y=list(destination_tonnage.values()),
+        text=[f"{v:,.0f}" for v in destination_tonnage.values()],  # Format numbers with commas
         textposition='auto',
-        marker_color=['#0693e3', '#8ed1fc', '#d62728'],  # Colors for each category
-        name='Material Tonnage'  # Legend name
+        marker_color=['#0693e3', '#8ed1fc', '#d62728', '#FFA07A', '#20B2AA'],  # Colors for each destination category
+        name='Destination Tonnage'  # Legend name
     )])
 
-    material_fig.update_layout(
-                           xaxis_title='Material Category',
+    destination_fig.update_layout(
+                           xaxis_title='Material Destination / Category',
                            yaxis_title='Tonnage',
-                           legend=dict(title='Material Legend', orientation='h', yanchor='bottom', y=1.02, xanchor='right', x=1))
+                           legend=dict(title='Legend', orientation='h', yanchor='bottom', y=1.02, xanchor='right', x=1))
 
-    st.plotly_chart(material_fig)
+    st.plotly_chart(destination_fig)
 
 if __name__ == "__main__":
     main()
+
 
 
 import streamlit as st
