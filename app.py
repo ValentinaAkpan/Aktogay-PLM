@@ -5,7 +5,6 @@ import plotly.graph_objects as go
 import streamlit as st
 import calendar
 
-
 def load_data(shovel):
     path_to_csvs = './'
     months = ['Load DetailApril2023',
@@ -36,8 +35,6 @@ def load_data(shovel):
             print(f"CSV file not found for {month}. Skipping...")
 
     return shovel_fill_data
-
-
 
 def plot_distribution(shovel_fill_data, shovel, desired_mean=100, desired_std=5):
     actual_mean = np.mean(shovel_fill_data)
@@ -105,7 +102,7 @@ def plot_distribution(shovel_fill_data, shovel, desired_mean=100, desired_std=5)
 
 
 def main():
-    st.title("Truck Fill Distribution Analysis")
+    st.title("Actual Vs. Desired Fill Distribution Analysis")
 
     # Get all available shovels dynamically
     all_shovels = set()
@@ -177,15 +174,7 @@ hourly_performance['AM/PM'] = hourly_performance['Hour'].apply(lambda x: 'AM' if
 # Define material categories
 material_categories = ['ALP', 'LG', 'HG', 'Crusher']
 
-
-import streamlit as st
-import calendar
-import pandas as pd
-import plotly.graph_objects as go
-
-# Assuming 'hourly_performance' and 'data' DataFrames, along with 'material_categories', are defined above this code.
-
-st.title('Truck Fill Rate Analysis')
+st.title('Hourly Truck Fill  Analysis')
 
 # Define all months and add "All" option
 month_options = ['All'] + list(calendar.month_abbr[1:])
