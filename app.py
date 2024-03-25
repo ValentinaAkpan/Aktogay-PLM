@@ -110,7 +110,7 @@ def plot_distribution(shovel_fill_data, shovel, desired_mean=100, desired_std=5)
 
 
 def main():
-    st.title("Actual vs. desired Truck Fill Distribution Analysis")
+    st.title("Truck Fill Distribution Analysis")
 
     # Get all available shovels dynamically
     all_shovels = set()
@@ -170,10 +170,10 @@ data['Month'] = data['Time Full'].dt.month.apply(lambda x: calendar.month_abbr[x
 data['Hour'] = data['Time Full'].dt.hour
 
 # Exclude rows with zero or NaN in 'Truck Factor' or 'Tonnage'
-data = data[(data['Tonnage'] != 0) & (data['Truck Factor'] != 0)].dropna(subset=['Truck Factor', 'Tonnage'])
+data = data[(data['Truck Factor'] != 0) & (data['Tonnage'] != 0)].dropna(subset=['Truck Factor', 'Tonnage'])
 
 # Calculate 'Truck Fill Rate (%)' with two decimal places
-data['Truck Fill Rate (%)'] = ((data['Truck Factor'] / data['Tonnage']) * 100).round(2)
+data['Truck Fill Rate (%)'] = ((data['Tonnage'] / data['Truck Factor']) * 100).round(2)
 
 # Prepare grouped data
 hourly_performance = data.groupby(['Year', 'Month', 'Hour'])['Truck Fill Rate (%)'].mean().reset_index()
@@ -190,7 +190,7 @@ import plotly.graph_objects as go
 
 # Assuming 'hourly_performance' and 'data' DataFrames, along with 'material_categories', are defined above this code.
 
-st.title('Truck Fill Rate Analysis by Month')
+st.title('Truck Fill Rate Analysis')
 
 # Define all months and add "All" option
 month_options = ['All'] + list(calendar.month_abbr[1:])
@@ -274,7 +274,7 @@ import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
 
-st.title('Hourly Performance: Truck Fill Rate by Shift (7 am - 7 pm vs. 7 pm - 7 am')
+st.title('Hourly Performance: Truck Fill Rate by Shift')
 
 # Step 1: Read the CSV files and concatenate them into a single DataFrame
 file_paths = [
