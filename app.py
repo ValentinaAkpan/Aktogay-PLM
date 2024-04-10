@@ -445,7 +445,8 @@ def plot_truck_fill_rate_by_shift(data):
             title='Hour of the Day',
             tickmode='array',
             tickvals=list(range(7, 31)),  # Set custom tick values
-            ticktext=[f"{i if i <= 24 else i-24} AM" if i != 24 else "12 PM" for i in range(7, 31)]  # Adjust tick text for 24-hour format
+            ticktext=[f"{(i % 12) or 12} {'AM' if i < 12 else 'PM'}" for i in range(7, 31)]
+
             
 
         ),
