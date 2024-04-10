@@ -369,81 +369,110 @@ def main():
 if __name__ == "__main__":
     main()
 
-import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
+import streamlit as st
 
-st.title('Hourly Performance: Truck Fill Rate by Shift')
-
-# Step 1: Read the CSV files and concatenate them into a single DataFrame
+# Define file paths for your CSV files
 file_paths = [
     'Load DetailApril2023.csv',
-    'Load DetailAugust2023.1-15.csv',
-    'Load DetailSeptember2023.csv',
-    'Load DetailAugust2023.16-31.csv',
-    'Load DetailDecember1-15.2023.csv',
-    'Load DetailDecember16-31.2023.csv',
-    'Load DetailFebruary2023.csv',
-    'Load DetailJanuary2023.csv',
-    'Load DetailJuly2023.csv',
-    'Load DetailJUNE2023.csv',
-    'Load DetailMarch2023.csv',
-    'Load DetailMay2023.csv',
-    'Load DetailNovember1-15.2023.csv',
-    'Load DetailNovember16-30.2023.csv'
+    # ... list all other CSV file paths
 ]
 
-# Read each CSV file and concatenate them
-@st.cache(allow_output_mutation=True)
-def load_data():
-    data = pd.concat([pd.read_csv(file) for file in file_paths])
+# Function to load and preprocess data from CSV files
+@st.experimental_singleton
+def load_and_preprocess_data(file_paths):
+    # Concatenate all CSV files into one DataFrame
+    data = pd.concat([pd.read_csv(f) for f in file_paths], ignore_index=True)
+    
+    # Convert 'Time Full' to datetime and extract relevant parts
+    data['Time Full'] = pd.to_datetime(data['Time Full'])
+    data['Hour'] = data['Time Full'].dt.hour
+    data['Month'] = data['Time Full'].dt.month
+    
+    # Map months to seasons
+    data['Season'] = data['Month'].apply(month_to_season)
+    
+    # Clean data
+    data = data.dropna(subset=['Truck Factor', 'Tonnage'])
+    data = data[(data['Truck Factor'] != 0) & (data['Tonnage'] != 0)]
+    
+    # Calculate the Truck Fill Rate
+    data['Truck Fill Rate (%)'] = (data['Tonnage'] / data['Truck Factor']) * 100
+    
+    # Determine shifts based on hour
+    data['Shift'] = data.apply(lambda row: 'Night Shift' if (row['Hour'] >= 19 or row['Hour'] < 7) else 'Day Shift', axis=1)
+    
+    # For plotting, adjust night hours by adding 24
+    data.loc[(data['Shift'] == 'Night Shift') & (data['Hour'] < 7), 'Hour'] += 24
+    
     return data
 
-data = load_data()
+# Helper function to map months to seasons
+def month_to_season(month):
+    if month in [12, 1, 2]:
+        return 'Winter'
+    elif month in [3, 4, 5]:
+        return 'Spring'
+    elif month in [6, 7, 8]:
+        return 'Summer'
+    else:  # Months 9, 10, 11
+        return 'Fall'
 
-# Convert 'Time Full' to datetime to extract the hour if needed
-data['Time Full'] = pd.to_datetime(data['Time Full'])
-data['Hour'] = data['Time Full'].dt.hour
+# Function to plot truck fill rate by shift
+def plot_truck_fill_rate_by_shift(data):
+    # Group data by 'Hour' and 'Shift' and calculate mean 'Truck Fill Rate (%)'
+    hourly_performance = data.groupby(['Hour', 'Shift'])['Truck Fill Rate (%)'].mean().reset_index()
+    
+    # Create the figure
+    fig = go.Figure()
+    
+    # Plot data for each shift
+    for shift in ['Day Shift', 'Night Shift']:
+        shift_data = hourly_performance[hourly_performance['Shift'] == shift]
+        fig.add_trace(go.Scatter(
+            x=shift_data['Hour'],
+            y=shift_data['Truck Fill Rate (%)'],
+            mode='lines+markers',
+            name=shift,
+            line=dict(color='green' if shift == 'Day Shift' else 'blue')
+        ))
+    
+    # Update layout details for the figure
+    fig.update_layout(
+        title='Hourly Performance: Truck Fill Rate by Shift',
+        xaxis=dict(
+            title='Hour of the Day',
+            tickmode='array',
+            tickvals=list(range(7, 31)),  # Set custom tick values
+            ticktext=[f"{i if i <= 24 else i-24} AM" if i != 24 else "12 PM" for i in range(7, 31)]  # Adjust tick text for 24-hour format
+            
 
-# Drop rows where 'Truck Factor' or 'Tonnage' is zero or NaN
-data = data[(data['Truck Factor'] != 0) & (data['Tonnage'] != 0)].dropna(subset=['Truck Factor', 'Tonnage'])
+        ),
+        yaxis=dict(
+            title='Truck Fill Rate (%)',
+            tickformat='.1f'
+        ),
+        legend_title='Shift',
+        template='plotly_white'
+    )
+    
+    # Show the figure in Streamlit
+    st.plotly_chart(fig)
 
-# Step 2: Calculate the Corrected Truck Fill Rate (%)
-data['Truck Fill Rate (%)'] = (data['Tonnage'] / data['Truck Factor']) * 100
+# The main function where the Streamlit app is run
+def main():
+    st.title('Hourly Performance: Truck Fill Rate by Shift')
+    
+    # Load and preprocess the data
+    data = load_and_preprocess_data(file_paths)
+    
+    # Plot the data
+    plot_truck_fill_rate_by_shift(data)
 
-# Create a column for shifts
-data['Shift'] = 'Day Shift'  # Initialize as Day Shift
-data.loc[(data['Hour'] >= 19) | (data['Hour'] < 7), 'Shift'] = 'Night Shift'
-
-# Step 3: Group by Hour and Shift and calculate mean corrected truck fill rate
-hourly_performance = data.groupby(['Hour', 'Shift'])['Truck Fill Rate (%)'].mean().reset_index()
-
-# Step 4: Visualize with Plotly
-fig = go.Figure()
-
-# Add the lines for Truck Fill Rate (%) for each shift
-for shift in data['Shift'].unique():
-    shift_data = hourly_performance[hourly_performance['Shift'] == shift]
-    fig.add_trace(go.Scatter(x=shift_data['Hour'], 
-                             y=shift_data['Truck Fill Rate (%)'], 
-                             mode='lines+markers',
-                             name=shift,
-                             marker=dict(color='Green' if shift == 'Day Shift' else 'Blue')))
-
-# Add layout details
-fig.update_layout(title='Hourly Performance: Truck Fill Rate by Shift',
-                  xaxis_title='Hour of the Day',
-                  yaxis_title='Truck Fill Rate (%)',  # Display as percentage
-                  yaxis_tickformat='.0f',  # Specify y-axis tick format as percentage without decimal places
-                  legend_title='Shift',
-                  template='plotly_white',
-                  xaxis=dict(
-                      tickvals=list(range(0, 24)),
-                      ticktext=[f"{i} AM" if i < 12 else f"{i-12} PM" if i > 12 else "12 PM" for i in range(24)]
-                  ))
-
-# Show the figure
-st.plotly_chart(fig)
+# Run the app
+if __name__ == '__main__':
+    main()
 
 
 import pandas as pd
