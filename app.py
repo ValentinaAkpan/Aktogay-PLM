@@ -20,6 +20,8 @@ file_paths = [
     'Load DetailNovember16-30.2023.csv'
 ]
 
+
+
 @st.experimental_memo
 def load_and_preprocess_data(file_paths):
     data = pd.concat([pd.read_csv(f) for f in file_paths], ignore_index=True)
@@ -32,64 +34,36 @@ def load_and_preprocess_data(file_paths):
     data['Shift'] = data['Hour'].apply(lambda hour: 'Day Shift' if 7 <= hour < 19 else 'Night Shift')
     return data
 
-def month_to_season(month):
-    if month in [12, 1, 2]:
-        return 'Winter'
-    elif month in [3, 4, 5]:
-        return 'Spring'
-    elif month in [6, 7, 8]:
-        return 'Summer'
-    else:
-        return 'Fall'
-
 def plot_truck_fill_rate_by_shift(data):
-    # Adjust the data so the night shift wraps around properly
-    data['Adjusted Hour'] = data.apply(lambda row: row['Hour'] if row['Shift'] == 'Day Shift' else row['Hour'] + 24, axis=1)
-    
-    # Group the data by adjusted hours and shift, then reset index for plotting
+    data['Adjusted Hour'] = data.apply(lambda row: row['Hour'] if row['Shift'] == 'Day Shift' else row['Hour'] - 5, axis=1)
+    data['Adjusted Hour'] = data['Adjusted Hour'] % 24
     hourly_performance = data.groupby(['Adjusted Hour', 'Shift'])['Truck Fill Rate (%)'].mean().reset_index()
-    hourly_performance['Display Hour'] = hourly_performance['Adjusted Hour'] % 24
+    hourly_performance.sort_values(by='Adjusted Hour', inplace=True)
 
-    # Initialize the figure
     fig = go.Figure()
 
-    # Plot for Day Shift
-    day_shift_data = hourly_performance[hourly_performance['Shift'] == 'Day Shift']
-    fig.add_trace(go.Scatter(
-        x=day_shift_data['Display Hour'],
-        y=day_shift_data['Truck Fill Rate (%)'],
-        mode='lines+markers',
-        name='Day Shift',
-        line=dict(color='#00B7F1', width=2),
-        marker=dict(size=7),
-    ))
+    for shift in ['Day Shift', 'Night Shift']:
+        shift_data = hourly_performance[hourly_performance['Shift'] == shift]
+        fig.add_trace(go.Scatter(
+            x=shift_data['Adjusted Hour'],
+            y=shift_data['Truck Fill Rate (%)'],
+            mode='lines+markers',
+            name=shift,
+            line=dict(width=2),
+            marker=dict(size=7),
+        ))
 
-    # Plot for Night Shift, adjust the x-axis for the night shift to display properly
-    night_shift_data = hourly_performance[hourly_performance['Shift'] == 'Night Shift']
-    night_shift_data['Display Hour'] += 24  # Adjust hours for night shift to not overlap with day shift on plot
-    fig.add_trace(go.Scatter(
-        x=night_shift_data['Display Hour'],
-        y=night_shift_data['Truck Fill Rate (%)'],
-        mode='lines+markers',
-        name='Night Shift',
-        line=dict(color='red', width=2),
-        marker=dict(size=7),
-    ))
-
-    # Set up the layout for the plot
     fig.update_layout(
         title='Hourly Performance: Truck Fill Rate by Shift',
         xaxis=dict(
-            title='Hour of the Day',
+            title='Hour of the Shift',
             tickmode='array',
-            # Set ticks to display every hour with proper labeling for the night shift
-            tickvals=[i for i in range(7, 43)],
-            ticktext=[f'{i%24}:00' for i in range(7, 43)]
+            tickvals=list(range(24)),
+            ticktext=[f'{i}:00' for i in range(24)]
         ),
         yaxis=dict(
             title='Truck Fill Rate (%)'
         ),
-        legend_title='Shift'
     )
 
     st.plotly_chart(fig)
@@ -106,19 +80,19 @@ def generate_shift_report(data):
             change = hourly_change[hour]
             trend = "increased" if change > 0 else ("decreased" if change < 0 else "remained stable")
             report_text += f"- At {hour%24}:00, the Truck Fill Rate (%) is {rate:.2f}% and has {trend} by {abs(change):.2f}% from the previous hour.\n"
-    
+
     return report_text
 
 def main():
     st.title('Hourly Performance: Truck Fill Rate by Shift')
-    # Clone the data before mutating
-    data = load_and_preprocess_data(file_paths).copy()
+    data = load_and_preprocess_data(file_paths)
     report_text = generate_shift_report(data)
     st.markdown(report_text)
     plot_truck_fill_rate_by_shift(data)
 
 if __name__ == '__main__':
     main()
+
 
 import pandas as pd
 import numpy as np
