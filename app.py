@@ -375,8 +375,22 @@ import streamlit as st
 
 # Define file paths for your CSV files
 file_paths = [
-    'Load DetailApril2023.csv',
-    # ... list all other CSV file paths
+  
+        'Load DetailApril2023',
+        'Load DetailAugust2023.1-15',
+        'Load DetailSeptember2023',
+        'Load DetailAugust2023.16-31',
+        'Load DetailDecember1-15.2023',
+        'Load DetailDecember16-31.2023',
+        'Load DetailFebruary2023',
+        'Load DetailJanuary2023',
+        'Load DetailJuly2023',
+        'Load DetailJUNE2023',
+        'Load DetailMarch2023',
+        'Load DetailMay2023',
+        'Load DetailNovember1-15.2023',
+        'Load DetailNovember16-30.2023'
+ 
 ]
 
 # Function to load and preprocess data from CSV files
