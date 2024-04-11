@@ -60,7 +60,7 @@ def plot_truck_fill_rate_by_shift(data):
         y=day_shift_data['Truck Fill Rate (%)'],
         mode='lines+markers',
         name='Day Shift',
-        line=dict(color='blue', width=2),
+        line=dict(color='#00B7F1', width=2),
         marker=dict(size=7),
     ))
 
