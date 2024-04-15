@@ -1,6 +1,7 @@
+import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
-import streamlit as st
+from plotly.subplots import make_subplots
 
 # Define file paths for your CSV files
 file_paths = [
@@ -20,78 +21,72 @@ file_paths = [
     'Load DetailNovember16-30.2023.csv'
 ]
 
+# Initialize an empty list to hold dataframes
+dataframes = []
 
+# Loop through the file paths, read each file into a dataframe, and append to the list
+for file_path in file_paths:
+    df = pd.read_csv(file_path)
+    # Example preprocessing: convert 'Time Full' to datetime and calculate the performance metric
+    df['Time Full'] = pd.to_datetime(df['Time Full'])
+    df['Performance Metric'] = df['Tonnage'] / df['Truck Factor']
+    dataframes.append(df)
 
-@st.experimental_memo
-def load_and_preprocess_data(file_paths):
-    data = pd.concat([pd.read_csv(f) for f in file_paths], ignore_index=True)
-    data['Time Full'] = pd.to_datetime(data['Time Full'], errors='coerce')
-    data.dropna(subset=['Truck Factor', 'Tonnage', 'Time Full'], inplace=True)
-    data = data[(data['Truck Factor'] != 0) & (data['Tonnage'] != 0)]
-    data['Hour'] = data['Time Full'].dt.hour
-    data['Month'] = data['Time Full'].dt.month
-    data['Truck Fill Rate (%)'] = (data['Tonnage'] / data['Truck Factor']) * 100
-    data['Shift'] = data['Hour'].apply(lambda hour: 'Day Shift' if 7 <= hour < 19 else 'Night Shift')
-    return data
+# Concatenate all the dataframes into one
+all_data = pd.concat(dataframes, ignore_index=True)
 
-def plot_truck_fill_rate_by_shift(data):
-    data['Adjusted Hour'] = data.apply(lambda row: row['Hour'] if row['Shift'] == 'Day Shift' else row['Hour'] - 5, axis=1)
-    data['Adjusted Hour'] = data['Adjusted Hour'] % 24
-    hourly_performance = data.groupby(['Adjusted Hour', 'Shift'])['Truck Fill Rate (%)'].mean().reset_index()
-    hourly_performance.sort_values(by='Adjusted Hour', inplace=True)
+# Function to map the hour of the shift based on 'Time Full'
+def map_to_shift_hour(row):
+    hour = row['Time Full'].hour
+    if 7 <= hour < 19:
+        return hour - 7  # Shift starts at 7AM
+    else:
+        return (hour + 17) % 24  # Shift starts at 7PM
 
-    fig = go.Figure()
+# Apply the function to the 'Time Full' column
+all_data['Shift Hour'] = all_data.apply(map_to_shift_hour, axis=1)
 
-    for shift in ['Day Shift', 'Night Shift']:
-        shift_data = hourly_performance[hourly_performance['Shift'] == shift]
-        fig.add_trace(go.Scatter(
-            x=shift_data['Adjusted Hour'],
-            y=shift_data['Truck Fill Rate (%)'],
-            mode='lines+markers',
-            name=shift,
-            line=dict(width=2),
-            marker=dict(size=7),
-        ))
+# Function to calculate hourly performance
+def calculate_hourly_performance(df):
+    # Group by Shift Hour and calculate mean performance metric
+    hourly_performance = df.groupby(['Shift Hour'])['Performance Metric'].mean()
+    return hourly_performance
 
-    fig.update_layout(
-        title='Hourly Performance: Truck Fill Rate by Shift',
-        xaxis=dict(
-            title='Hour of the Shift',
-            tickmode='array',
-            tickvals=list(range(24)),
-            ticktext=[f'{i}:00' for i in range(24)]
-        ),
-        yaxis=dict(
-            title='Truck Fill Rate (%)'
-        ),
-    )
+# Calculate hourly performance for both shifts
+day_shift_data = all_data[(all_data['Time Full'].dt.hour >= 7) & (all_data['Time Full'].dt.hour < 19)]
+night_shift_data = all_data[(all_data['Time Full'].dt.hour < 7) | (all_data['Time Full'].dt.hour >= 19)]
 
-    st.plotly_chart(fig)
+day_shift_performance = calculate_hourly_performance(day_shift_data)
+night_shift_performance = calculate_hourly_performance(night_shift_data)
 
-def generate_shift_report(data):
-    report_text = "### Shift and Hourly Report\n"
-    for shift in ['Day Shift', 'Night Shift']:
-        shift_data = data[data['Shift'] == shift]
-        hourly_mean = shift_data.groupby(['Hour'])['Truck Fill Rate (%)'].mean()
-        hourly_change = hourly_mean.pct_change().fillna(0) * 100
+# Create a single plot for both shifts
+fig = go.Figure()
 
-        report_text += f"#### {shift}\n"
-        for hour, rate in hourly_mean.items():
-            change = hourly_change[hour]
-            trend = "increased" if change > 0 else ("decreased" if change < 0 else "remained stable")
-            report_text += f"- At {hour%24}:00, the Truck Fill Rate (%) is {rate:.2f}% and has {trend} by {abs(change):.2f}% from the previous hour.\n"
+# Add traces for both shifts
+fig.add_trace(
+    go.Scatter(x=day_shift_performance.index, y=day_shift_performance,
+               name='Day Shift (7 AM to 7 PM)', mode='lines+markers', line=dict(color='blue'))
+)
 
-    return report_text
+fig.add_trace(
+    go.Scatter(x=night_shift_performance.index, y=night_shift_performance,
+               name='Night Shift (7 PM to 7 AM)', mode='lines+markers', line=dict(color='orange'))
+)
 
-def main():
-    st.title('Hourly Performance: Truck Fill Rate by Shift')
-    data = load_and_preprocess_data(file_paths)
-    report_text = generate_shift_report(data)
-    st.markdown(report_text)
-    plot_truck_fill_rate_by_shift(data)
+# Update x-axis to start at 07:00 and end at 06:59
+fig.update_layout(
+    xaxis=dict(
+        title='Hour of the Shift',
+        tickvals=list(range(0, 24)),
+        ticktext=[f'{hour:02d}:00' for hour in range(7, 24)] + [f'{hour:02d}:00' for hour in range(0, 7)]
+    ),
+    yaxis=dict(title='Truck Factor/Average Tonnage'),
+    title='Hourly Performance: Truck Factor/Average Tonnage by Shift'
+)
 
-if __name__ == '__main__':
-    main()
+# Show figure
+st.plotly_chart(fig)
+
 
 
 import pandas as pd
