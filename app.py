@@ -81,7 +81,7 @@ fig.update_layout(
         ticktext=[f'{hour:02d}:00' for hour in range(7, 24)] + [f'{hour:02d}:00' for hour in range(0, 7)]
     ),
     yaxis=dict(title='Truck Factor/Average Tonnage'),
-    title='Hourly Performance: Truck Factor/Average Tonnage by Shift'
+    title='Hourly Performance by Shift'
 )
 
 # Show figure
