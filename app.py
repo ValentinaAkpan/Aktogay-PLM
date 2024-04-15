@@ -65,12 +65,12 @@ fig = go.Figure()
 # Add traces for both shifts
 fig.add_trace(
     go.Scatter(x=day_shift_performance.index, y=day_shift_performance,
-               name='Day Shift (7 AM to 7 PM)', mode='lines+markers', line=dict(color='blue'))
+               name='Day Shift (7 AM to 7 PM)', mode='lines+markers', line=dict(color='red'))
 )
 
 fig.add_trace(
     go.Scatter(x=night_shift_performance.index, y=night_shift_performance,
-               name='Night Shift (7 PM to 7 AM)', mode='lines+markers', line=dict(color='orange'))
+               name='Night Shift (7 PM to 7 AM)', mode='lines+markers', line=dict(color='blue'))
 )
 
 # Update x-axis to start at 07:00 and end at 06:59
