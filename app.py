@@ -162,7 +162,6 @@ def main():
     st.title("Truck Fill Distribution Analysis")
 
     # Dynamic shovel extraction and loading data logic remains
-    # Dynamic shovel extraction and loading data logic remains unchanged.
     path_to_csvs = './'
     months = [
         'Load DetailApril2023',
@@ -360,10 +359,14 @@ def load_data(file_paths):
 data = load_data(file_paths)
 
 # Create a dropdown for shovel selection
-selected_shovel = st.selectbox("Select Shovel", data['Shovel'].unique())
+shovel_options = ['All'] + list(data['Shovel'].unique())
+selected_shovel = st.selectbox("Select Shovel", shovel_options)
 
 # Filter data for the selected shovel
-shovel_data = data[(data['Shovel'] == selected_shovel) & (data['Truck Factor'] != 0) & (data['Tonnage'] != 0)].dropna(subset=['Truck Factor', 'Tonnage'])
+if selected_shovel == 'All':
+    shovel_data = data[(data['Truck Factor'] != 0) & (data['Tonnage'] != 0)].dropna(subset=['Tonnage', 'Truck Factor'])
+else:
+    shovel_data = data[(data['Shovel'] == selected_shovel) & (data['Tonnage'] != 0) & (data['Truck Factor'] != 0)].dropna(subset=['Truck Factor', 'Tonnage'])
 shovel_data['Truck Fill Rate (%)'] = (shovel_data['Tonnage'] / shovel_data['Truck Factor']) * 100
 
 # Monthly Performance
@@ -534,7 +537,6 @@ st.title("Current and Desired Truck Fill Rates")
 results_df = pd.DataFrame(all_months_data)
 
 # Add CSS styling to the header of the table to change the background color
-# Add CSS styling to the header of the table to change the background color and text color
 header_html = """
 <style>
 th {
