@@ -57,7 +57,6 @@ import plotly.graph_objects as go
 import streamlit as st
 import calendar
 
-
 def load_data(shovel):
     path_to_csvs = './'
     months = [
@@ -86,7 +85,10 @@ def load_data(shovel):
             
             if 'Tonnage' in month_data.columns and 'Truck Factor' in month_data.columns and 'Shovel' in month_data.columns:
                 month_data = month_data[month_data['Truck Factor'] > 0]
-                filtered_data = month_data[month_data['Shovel'] == shovel]
+                if shovel == 'All':
+                    filtered_data = month_data
+                else:
+                    filtered_data = month_data[month_data['Shovel'] == shovel]
                 truck_fill_percentage = (filtered_data['Tonnage'] / filtered_data['Truck Factor']) * 100
                 shovel_fill_data.extend(truck_fill_percentage.dropna())
           
@@ -192,7 +194,8 @@ def main():
         st.error("No shovel data available. Please check the dataset.")
         return
 
-    selected_shovel = st.selectbox("Select a Shovel", sorted(list(shovels)))
+    shovels_list = ['All'] + sorted(list(shovels))
+    selected_shovel = st.selectbox("Select a Shovel", shovels_list)
     shovel_fill_data = load_data(selected_shovel)
 
     if shovel_fill_data:
@@ -202,9 +205,6 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-
 
 def main():
     st.title("Truck Fill Distribution Analysis")
