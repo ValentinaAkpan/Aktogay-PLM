@@ -389,4 +389,90 @@ for season, color in colors.items():
 fig_monthly.update_layout(xaxis_title='Month', yaxis_title='Average Truck Fill Rate (%)', template='plotly_white')
 st.plotly_chart(fig_monthly)
 
+import streamlit as st
+import plotly.graph_objects as go
+import pandas as pd
+
+# Load data
+file_paths = [
+    'Load DetailApril2023.csv',
+    'Load DetailAugust2023.1-15.csv',
+    'Load DetailSeptember2023.csv',
+    'Load DetailAugust2023.16-31.csv',
+    'Load DetailDecember1-15.2023.csv',
+    'Load DetailDecember16-31.2023.csv',
+    'Load DetailFebruary2023.csv',
+    'Load DetailJanuary2023.csv',
+    'Load DetailJuly2023.csv',
+    'Load DetailJUNE2023.csv',
+    'Load DetailMarch2023.csv',
+    'Load DetailMay2023.csv',
+    'Load DetailNovember1-15.2023.csv',
+    'Load DetailNovember16-30.2023.csv'
+]
+
+@st.cache(allow_output_mutation=True)
+def load_data(file_paths):
+    data = pd.concat([pd.read_csv(file) for file in file_paths])
+    return data
+
+def main():
+    st.subheader('Material Destination Analysis')
+
+    # Load data for all shovels
+    data = load_data(file_paths)
+
+    # Create a multi-select dropdown for shovel selection
+    all_shovels = ['All'] + data['Shovel'].unique().tolist()
+    selected_shovels = st.multiselect("Select Shovels", all_shovels, default=['All'])
+
+    # Filter data for the selected shovels
+    if 'All' in selected_shovels:
+        shovel_data = data
+    else:
+        shovel_data = data[data['Shovel'].isin(selected_shovels)]
+
+    # Drop rows with any NaN values in the dataframe to avoid errors in processing
+    data_cleaned = shovel_data.dropna()
+
+    # Filter and summarize tonnage for each destination category
+    crusher_data = data_cleaned[data_cleaned['Assigned Dump'].str.contains('CRUSHER')]
+    dlp_data = data_cleaned[data_cleaned['Assigned Dump'].str.contains('DLP')]
+    stockpile_data = data_cleaned[~data_cleaned['Assigned Dump'].str.contains('CRUSHER|DLP', regex=True)]
+    hg_data = data_cleaned[data_cleaned['Material'] == 'HG']
+    lg_data = data_cleaned[data_cleaned['Material'].str.contains('LG')]
+
+    # Calculate total tonnage for each category
+    hg_total = hg_data['Tonnage'].sum()
+    lg_total = lg_data['Tonnage'].sum()
+    crusher_total = crusher_data['Tonnage'].sum()
+    dlp_total = dlp_data['Tonnage'].sum()
+    stockpile_total = stockpile_data['Tonnage'].sum()
+
+    # Create a dictionary for destination tonnage
+    destination_tonnage = {
+        'High Grade (HG)': hg_total,
+        'Low Grade (LG)': lg_total,
+        'Crusher': crusher_total,
+        'Acid Leach Pad (DLP)': dlp_total,
+        'Stockpiles': stockpile_total
+    }
+
+    # Create pie chart
+    fig_pie = go.Figure(data=[go.Pie(labels=list(destination_tonnage.keys()), values=list(destination_tonnage.values()), hole=0.3)])
+    fig_pie.update_traces(textinfo='percent+label', textposition='inside')
+
+    st.plotly_chart(fig_pie)
+
+    # Detailed report
+    st.subheader("Detailed Report")
+    st.write("Summary of tonnage for each material destination category:")
+    st.write("- High Grade (HG): Total Tonnage -", hg_total)
+    st.write("- Low Grade (LG): Total Tonnage -", lg_total)
+    st.write("- Crusher: Total Tonnage -", crusher_total)
+    st.write("- Acid Leach Pad (DLP): Total Tonnage -", dlp_total)
+    st.write("- Stockpiles: Total Tonnage -", stockpile_total)
+
+if __name__ == "__main__":
+    main()
 
