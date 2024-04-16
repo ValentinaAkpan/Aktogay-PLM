@@ -161,53 +161,6 @@ def plot_distribution(shovel_fill_data, shovel, desired_mean=100, desired_std=5)
 def main():
     st.title("Truck Fill Distribution Analysis")
 
-    # Dynamic shovel extraction and loading data logic remains
-    path_to_csvs = './'
-    months = [
-        'Load DetailApril2023',
-        'Load DetailAugust2023.1-15',
-        'Load DetailSeptember2023',
-        'Load DetailAugust2023.16-31',
-        'Load DetailDecember1-15.2023',
-        'Load DetailDecember16-31.2023',
-        'Load DetailFebruary2023',
-        'Load DetailJanuary2023',
-        'Load DetailJuly2023',
-        'Load DetailJUNE2023',
-        'Load DetailMarch2023',
-        'Load DetailMay2023',
-        'Load DetailNovember1-15.2023',
-        'Load DetailNovember16-30.2023'
-    ]
-
-    # Dynamically get the list of shovels from the dataset
-    shovels = set()
-    for month in months:
-        try:
-            month_data = pd.read_csv(f'{path_to_csvs}Cleaned_{month}.csv')
-            shovels.update(month_data['Shovel'].dropna().unique())
-        except FileNotFoundError:
-            st.error(f"File not found: Cleaned_{month}.csv")
-
-    if not shovels:
-        st.error("No shovel data available. Please check the dataset.")
-        return
-
-    shovels_list = ['All'] + sorted(list(shovels))
-    selected_shovel = st.selectbox("Select a Shovel", shovels_list)
-    shovel_fill_data = load_data(selected_shovel)
-
-    if shovel_fill_data:
-        plot_distribution(shovel_fill_data, selected_shovel)
-    else:
-        st.write("No fill data available for the selected shovel. Please select a different shovel.")
-
-if __name__ == "__main__":
-    main()
-
-def main():
-    st.title("Truck Fill Distribution Analysis")
-
     # Get all available shovels dynamically
     all_shovels = set()
     months = ['Load DetailApril2023',
@@ -236,9 +189,17 @@ def main():
     # Dropdown for selecting shovel
     selected_shovel = st.selectbox("Select Shovel", all_shovels)
 
-    # Plot distribution for selected shovel
+    # Dropdowns for mean and standard deviation
+    selected_mean = st.slider("Select Mean (%)", 98, 110, 100, step=1)
+    selected_std = st.slider("Select Standard Deviation (%)", 1, 10, 5, step=1)
+
+    # Plot distribution for selected shovel with selected mean and standard deviation
     shovel_fill_data = load_data(selected_shovel)
-    plot_distribution(shovel_fill_data, selected_shovel)
+    plot_distribution(shovel_fill_data, selected_shovel, selected_mean, selected_std)
+
+if __name__ == "__main__":
+    main()
+
 
 
 import streamlit as st
