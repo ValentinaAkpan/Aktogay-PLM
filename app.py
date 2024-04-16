@@ -467,3 +467,103 @@ def main():
 if __name__ == "__main__":
     main()
 
+import streamlit as st
+import pandas as pd
+import numpy as np
+from scipy.stats import norm
+
+def calculate_material_increase(current_mean, current_std, desired_mean=100, desired_std=5):
+    # Compute z-scores for desired and current means
+    z_current = (desired_mean - current_mean) / current_std
+    z_desired = 0  # The desired mean is at the peak of the normal distribution (z-score = 0)
+    
+    # Compute the potential increase using CDF
+    potential_increase = norm.cdf(z_current) - norm.cdf(z_desired)
+    
+    # Return the potential increase as a percentage
+    return potential_increase * 100
+
+# Load your truck fill rate data from the CSV files
+file_paths = [
+    'Load DetailApril2023.csv',
+    'Load DetailAugust2023.1-15.csv',
+    'Load DetailSeptember2023.csv',
+    'Load DetailAugust2023.16-31.csv',
+    'Load DetailDecember1-15.2023.csv',
+    'Load DetailDecember16-31.2023.csv',
+    'Load DetailFebruary2023.csv',
+    'Load DetailJanuary2023.csv',
+    'Load DetailJuly2023.csv',
+    'Load DetailJUNE2023.csv',
+    'Load DetailMarch2023.csv',
+    'Load DetailMay2023.csv',
+    'Load DetailNovember1-15.2023.csv',
+    'Load DetailNovember16-30.2023.csv'
+]
+
+def load_truck_fill_data():
+    all_months_data = []
+    
+    for file_path in file_paths:
+        month_data = pd.read_csv(file_path)
+        if 'Tonnage' in month_data.columns and 'Truck Factor' in month_data.columns:
+            # Add a "Month" column based on the timestamp
+            month_data['Month'] = pd.to_datetime(month_data['Time Full']).dt.strftime('%b')  # Format as abbreviated month names
+            
+            current_truck_fill = (month_data['Tonnage'].sum() / month_data['Truck Factor'].sum()) * 100  # Convert to percentage
+            current_material_moved = month_data['Tonnage'].sum()
+            desired_material_moved = current_material_moved * (1 + calculate_material_increase(current_truck_fill, 100, 100, 5) / 100)
+            month_name = pd.to_datetime(month_data['Time Full']).dt.strftime('%b').iloc[0]  # Extract the month name from the first row
+            
+            all_months_data.append({
+                'Month': month_name,
+                'Current Truck Fill Rate': f"{current_truck_fill:.2f}%",  # Format as percentage
+                'Desired Truck Fill Rate': "100%",
+                'Current Material ': f"{current_material_moved:.2e}",  # Scientific notation
+                'Desired Material ': f"{desired_material_moved:.2e}"  # Scientific notation
+            })
+    
+    return all_months_data
+
+# Load your truck fill rate data
+all_months_data = load_truck_fill_data()
+
+# Display the results using Streamlit
+st.title("Current and Desired Truck Fill Rates")
+
+results_df = pd.DataFrame(all_months_data)
+
+# Add CSS styling to the header of the table to change the background color
+# Add CSS styling to the header of the table to change the background color and text color
+header_html = """
+<style>
+th {
+  background-color: #00B7F1; 
+}
+
+th div {
+  color: white;
+}
+</style>
+"""
+
+st.markdown(header_html, unsafe_allow_html=True)
+
+st.table(results_df)
+
+# Calculate total trucks
+total_trucks = 0  # Initialize total number of trucks
+for file_path in file_paths:
+    month_data = pd.read_csv(file_path)
+    if 'Truck' in month_data.columns:
+        # Convert values in the "Truck" column to numeric, ignoring errors
+        month_data['Truck'] = pd.to_numeric(month_data['Truck'], errors='coerce')
+        # Sum up the numeric values in the "Truck" column
+        total_trucks += month_data['Truck'].sum()
+
+mean_fill = 100  # Desired mean fill rate is 100%
+
+actual_material = 0  # Initialize actual material moved
+desired_material = 0  # Initialize desired material that could be moved
+
+
