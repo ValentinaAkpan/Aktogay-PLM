@@ -382,45 +382,33 @@ def main():
     data_cleaned = shovel_data.dropna()
 
     # Filter and summarize tonnage for each destination category
-    crusher_tonnage = data_cleaned[data_cleaned['Assigned Dump'].str.contains('CRUSHER')]['Tonnage'].sum()
-    dlp_tonnage = data_cleaned[data_cleaned['Assigned Dump'].str.contains('DLP')]['Tonnage'].sum()
+    crusher_data = data_cleaned[data_cleaned['Assigned Dump'].str.contains('CRUSHER')]
+    dlp_data = data_cleaned[data_cleaned['Assigned Dump'].str.contains('DLP')]
+    stockpile_data = data_cleaned[~data_cleaned['Assigned Dump'].str.contains('CRUSHER|DLP', regex=True)]
+    hg_data = data_cleaned[data_cleaned['Material'] == 'HG']
+    lg_data = data_cleaned[data_cleaned['Material'].str.contains('LG')]
 
-    # For stockpiles, assuming everything not going to the crusher or DLP
-    stockpile_tonnage = data_cleaned[~data_cleaned['Assigned Dump'].str.contains('CRUSHER|DLP', regex=True)]['Tonnage'].sum()
+    # Calculate total tonnage for each category
+    hg_total = hg_data['Tonnage'].sum()
+    lg_total = lg_data['Tonnage'].sum()
+    crusher_total = crusher_data['Tonnage'].sum()
+    dlp_total = dlp_data['Tonnage'].sum()
+    stockpile_total = stockpile_data['Tonnage'].sum()
 
-    # High Grade (HG) and Low Grade (LG) materials summary
-    hg_tonnage = data_cleaned[data_cleaned['Material'] == 'HG']['Tonnage'].sum()
-    lg_tonnage = data_cleaned[data_cleaned['Material'].str.contains('LG')]['Tonnage'].sum()
-
-    # Creating a dictionary for destination tonnage
+    # Create a dictionary for destination tonnage
     destination_tonnage = {
-        'High Grade (HG)': hg_tonnage,
-        'Low Grade (LG)': lg_tonnage,
-        'Crusher': crusher_tonnage,
-        'Acid Leach Pad (DLP)': dlp_tonnage,
-        'Stockpiles': stockpile_tonnage
+        'High Grade (HG)': hg_total,
+        'Low Grade (LG)': lg_total,
+        'Crusher': crusher_total,
+        'Acid Leach Pad (DLP)': dlp_total,
+        'Stockpiles': stockpile_total
     }
 
-    # Create bar chart
-    destination_fig = go.Figure(data=[go.Bar(
-        x=list(destination_tonnage.keys()),
-        y=list(destination_tonnage.values()),
-        text=[f"{v:,.0f}" for v in destination_tonnage.values()],  # Format numbers with commas
-        textposition='auto',
-        marker_color=['#0693e3', '#8ed1fc', '#d62728', '#FFA07A', '#20B2AA'],  # Colors for each destination category
-        name='Destination Tonnage'  # Legend name
-    )])
+    # Create pie chart
+    fig_pie = go.Figure(data=[go.Pie(labels=list(destination_tonnage.keys()), values=list(destination_tonnage.values()), hole=0.3)])
+    fig_pie.update_traces(textinfo='percent+label', textposition='inside')
 
-    destination_fig.update_layout(
-                           xaxis_title='Material Destination / Category',
-                           yaxis_title='Tonnage',
-                           legend=dict(title='Legend', orientation='h', yanchor='bottom', y=1.02, xanchor='right', x=1))
-
-    st.plotly_chart(destination_fig)
-
-if __name__ == "__main__":
-    main()
-
+    st.plotly_chart(fig_pie)
 
 import pandas as pd
 import plotly.graph_objects as go
