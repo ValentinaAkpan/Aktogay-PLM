@@ -471,16 +471,27 @@ selected_shovel = st.selectbox("Select Shovel", data['Shovel'].unique())
 shovel_data = data[(data['Shovel'] == selected_shovel) & (data['Truck Factor'] != 0) & (data['Tonnage'] != 0)].dropna(subset=['Truck Factor', 'Tonnage'])
 shovel_data['Truck Fill Rate (%)'] = (shovel_data['Tonnage'] / shovel_data['Truck Factor']) * 100
 
-# Seasonal Performance
-seasonal_performance = shovel_data.groupby('Season')['Truck Fill Rate (%)'].mean().reset_index()
+# Monthly Performance
+monthly_performance = shovel_data.groupby(['Season', 'Month'])['Truck Fill Rate (%)'].mean().reset_index()
 
-# Seasonal Trend Visualization
-st.title(f'Seasonal Truck Fill Rate Trends for {selected_shovel}')
-fig_seasonal = go.Figure(data=[go.Bar(x=seasonal_performance['Season'], y=seasonal_performance['Truck Fill Rate (%)'],
-                                      text=seasonal_performance['Truck Fill Rate (%)'].apply(lambda x: f"{x:.2f}%"),
-                                      textposition='auto',
-                                      marker_color='#00B7F1')])
-fig_seasonal.update_layout(xaxis_title='Season', yaxis_title='Average Truck Fill Rate (%)', template='plotly_white')
-st.plotly_chart(fig_seasonal)
+# Assign colors to seasons
+colors = {'Winter': '#1f77b4', 'Spring': '#ff7f0e', 'Summer': '#2ca02c', 'Fall': '#d62728'}
+
+# Create a list of colors for each month based on its season
+monthly_performance['Color'] = monthly_performance['Season'].map(colors)
+
+# Define month names
+month_names = {1: 'Jan', 2: 'Feb', 3: 'Mar', 4: 'Apr', 5: 'May', 6: 'Jun', 7: 'Jul', 8: 'Aug', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dec'}
+
+# Monthly Trend Visualization
+st.title(f'Monthly Truck Fill Rate Trends for {selected_shovel}')
+fig_monthly = go.Figure()
+for season, color in colors.items():
+    season_data = monthly_performance[monthly_performance['Season'] == season]
+    fig_monthly.add_trace(go.Bar(x=season_data['Month'].map(month_names), y=season_data['Truck Fill Rate (%)'],
+                                  name=season, marker_color=color))
+
+fig_monthly.update_layout(xaxis_title='Month', yaxis_title='Average Truck Fill Rate (%)', template='plotly_white')
+st.plotly_chart(fig_monthly)
 
 
