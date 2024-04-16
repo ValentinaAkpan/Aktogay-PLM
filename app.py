@@ -513,14 +513,14 @@ def load_truck_fill_data():
             # Add a "Month" column based on the timestamp
             month_data['Month'] = pd.to_datetime(month_data['Time Full']).dt.strftime('%b')  # Format as abbreviated month names
             
-            current_truck_fill = (month_data['Tonnage'].sum() / month_data['Truck Factor'].sum()) * 100  # Convert to percentage
+            current_truck_fill = (month_data['Tonnage'] / month_data['Truck Factor']) * 100  # Calculate truck fill rate for each row
             current_material_moved = month_data['Tonnage'].sum()
-            desired_material_moved = current_material_moved * (1 + calculate_material_increase(current_truck_fill, 100, 100, 5) / 100)
+            desired_material_moved = current_material_moved * (1 + calculate_material_increase(current_truck_fill.mean(), 100, 100, 5) / 100)
             month_name = pd.to_datetime(month_data['Time Full']).dt.strftime('%b').iloc[0]  # Extract the month name from the first row
             
             all_months_data.append({
                 'Month': month_name,
-                'Current Truck Fill Rate': f"{current_truck_fill:.2f}%",  # Format as percentage
+                'Current Truck Fill Rate': f"{current_truck_fill.mean():.2f}%",  # Format as percentage
                 'Desired Truck Fill Rate': "100%",
                 'Current Material ': f"{current_material_moved:.2e}",  # Scientific notation
                 'Desired Material ': f"{desired_material_moved:.2e}"  # Scientific notation
@@ -567,5 +567,6 @@ mean_fill = 100  # Desired mean fill rate is 100%
 
 actual_material = 0  # Initialize actual material moved
 desired_material = 0  # Initialize desired material that could be moved
+
 
 
