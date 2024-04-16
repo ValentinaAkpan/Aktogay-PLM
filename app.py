@@ -464,15 +464,6 @@ def main():
 
     st.plotly_chart(fig_pie)
 
-    # Detailed report
-    st.subheader("Detailed Report")
-    st.write("Summary of tonnage for each material destination category:")
-    st.write("- High Grade (HG): Total Tonnage -", hg_total)
-    st.write("- Low Grade (LG): Total Tonnage -", lg_total)
-    st.write("- Crusher: Total Tonnage -", crusher_total)
-    st.write("- Acid Leach Pad (DLP): Total Tonnage -", dlp_total)
-    st.write("- Stockpiles: Total Tonnage -", stockpile_total)
-
 if __name__ == "__main__":
     main()
 
