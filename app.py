@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
+import plotly.express as px
 
 # Define file paths for your CSV files
 file_paths = [
@@ -21,72 +20,34 @@ file_paths = [
     'Load DetailNovember16-30.2023.csv'
 ]
 
-# Initialize an empty list to hold dataframes
-dataframes = []
+def load_data(file_paths):
+    all_data = pd.concat([pd.read_csv(file_path) for file_path in file_paths])
+    all_data['Time Full'] = pd.to_datetime(all_data['Time Full'])
+    all_data['Hour'] = all_data['Time Full'].dt.hour
+    
+    # Adjust the shift definition to 7 AM - 7 PM for Day, and 7 PM - 7 AM for Night
+    all_data['Shift'] = all_data['Hour'].apply(lambda x: 'Day' if 7 <= x < 19 else 'Night')
+    
+    # Calculate 'Truck fill (%)' as the ratio of 'Tonnage' to 'Truck Factor', multiplied by 100 to get a percentage
+    all_data['Truck fill (%)'] = (all_data['Tonnage'] / all_data['Truck Factor']) * 100
+    
+    return all_data
 
-# Loop through the file paths, read each file into a dataframe, and append to the list
-for file_path in file_paths:
-    df = pd.read_csv(file_path)
-    # Example preprocessing: convert 'Time Full' to datetime and calculate the performance metric
-    df['Time Full'] = pd.to_datetime(df['Time Full'])
-    df['Performance Metric'] = df['Tonnage'] / df['Truck Factor']
-    dataframes.append(df)
 
-# Concatenate all the dataframes into one
-all_data = pd.concat(dataframes, ignore_index=True)
+def create_plot(data):
+    average_fill_by_hour_shift = data.groupby(['Hour', 'Shift'])['Truck fill (%)'].mean().reset_index()
+    fig = px.line(average_fill_by_hour_shift, x='Hour', y='Truck fill (%)', color='Shift',
+                  labels={'Truck fill (%)': 'Average Truck Fill (%)'}, title='Average Truck Fill by Hour and Shift',
+                  color_discrete_map={'Day': 'red', 'Night': 'blue'})
+    fig.update_xaxes(dtick=1)
+    return fig
 
-# Function to map the hour of the shift based on 'Time Full'
-def map_to_shift_hour(row):
-    hour = row['Time Full'].hour
-    if 7 <= hour < 19:
-        return hour - 7  # Shift starts at 7AM
-    else:
-        return (hour + 17) % 24  # Shift starts at 7PM
+# Loading data and creating the plot
+data = load_data(file_paths)
+fig = create_plot(data)
 
-# Apply the function to the 'Time Full' column
-all_data['Shift Hour'] = all_data.apply(map_to_shift_hour, axis=1)
-
-# Function to calculate hourly performance
-def calculate_hourly_performance(df):
-    # Group by Shift Hour and calculate mean performance metric
-    hourly_performance = df.groupby(['Shift Hour'])['Performance Metric'].mean()
-    return hourly_performance
-
-# Calculate hourly performance for both shifts
-day_shift_data = all_data[(all_data['Time Full'].dt.hour >= 7) & (all_data['Time Full'].dt.hour < 19)]
-night_shift_data = all_data[(all_data['Time Full'].dt.hour < 7) | (all_data['Time Full'].dt.hour >= 19)]
-
-day_shift_performance = calculate_hourly_performance(day_shift_data)
-night_shift_performance = calculate_hourly_performance(night_shift_data)
-
-# Create a single plot for both shifts
-fig = go.Figure()
-
-# Add traces for both shifts
-fig.add_trace(
-    go.Scatter(x=day_shift_performance.index, y=day_shift_performance,
-               name='Day Shift (7 AM to 7 PM)', mode='lines+markers', line=dict(color='red'))
-)
-
-fig.add_trace(
-    go.Scatter(x=night_shift_performance.index, y=night_shift_performance,
-               name='Night Shift (7 PM to 7 AM)', mode='lines+markers', line=dict(color='blue'))
-)
-
-# Update x-axis to start at 07:00 and end at 06:59
-fig.update_layout(
-    xaxis=dict(
-        title='Hour of the Shift',
-        tickvals=list(range(0, 24)),
-        ticktext=[f'{hour:02d}:00' for hour in range(7, 24)] + [f'{hour:02d}:00' for hour in range(0, 7)]
-    ),
-    yaxis=dict(title='Truck Factor/Average Tonnage'),
-    title='Hourly Performance by Shift'
-)
-
-# Show figure
+# Displaying the plot in your Streamlit app
 st.plotly_chart(fig)
-
 
 
 import pandas as pd
