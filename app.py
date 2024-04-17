@@ -107,8 +107,30 @@ def plot_distribution(shovel_fill_data, shovel, desired_mean=100, desired_std=5)
 
     st.plotly_chart(fig)
 
+def generate_markdown_explanation(actual_mean, actual_std, desired_mean, desired_std):
+    explanation = f"""
+    To illustrate potential improvements with the implemented approach, the above distributions represent the actual and desired truck fill rates for the selected shovel.
+    
+    Actual Mean: {actual_mean:.2f}%
+    Actual Std Dev: {actual_std:.2f}%
+    Desired Mean: {desired_mean}%
+    Desired Std Dev: {desired_std}%
+    
+    By optimizing the truck fill rates to achieve the desired mean and standard deviation, we can enhance operational efficiency and ensure a more consistent material movement process.
+    """
+    return explanation
+
 def main():
-    st.title("Truck Fill Distribution Analysis")
+    st.title("Potential Improvements to Operational Efficiency with ShovelMetrics™ Payload Monitoring")
+    st.markdown("Prepared for: Aktogay Mine")
+    st.markdown("Date: 2024-04-17")
+    st.markdown("## Introduction")
+    st.markdown("The purpose of this analysis is to evaluate the potential improvements in operational efficiency with the implementation of ShovelMetrics™ Payload Monitoring (SM-PLM). By analyzing the truck fill distribution data, we aim to identify areas where optimizations can be made to enhance productivity and reduce operational risks.")
+    st.markdown("To illustrate potential improvements with SM-PLM, the above distributions are shown in Figures 4 - 6 along with a target fill of 100% and a standard deviation of 5% to emulate the distribution with SM-PLM. The number of trucks is kept constant, and both curves share the same area and cumulative distribution.")
+    
+    # Add the rest of the code here...
+
+
 
     # Get all available shovels dynamically
     all_shovels = set()
@@ -145,7 +167,6 @@ def main():
     # Plot distribution for selected shovel with selected mean and standard deviation
     shovel_fill_data = load_data(selected_shovel)
     plot_distribution(shovel_fill_data, selected_shovel, selected_mean, selected_std)
-
 
 if __name__ == "__main__":
     main()
