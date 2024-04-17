@@ -1,55 +1,3 @@
-import streamlit as st
-import pandas as pd
-import plotly.express as px
-
-# Define file paths for your CSV files
-file_paths = [
-    'Load DetailApril2023.csv',
-    'Load DetailAugust2023.1-15.csv',
-    'Load DetailSeptember2023.csv',
-    'Load DetailAugust2023.16-31.csv',
-    'Load DetailDecember1-15.2023.csv',
-    'Load DetailDecember16-31.2023.csv',
-    'Load DetailFebruary2023.csv',
-    'Load DetailJanuary2023.csv',
-    'Load DetailJuly2023.csv',
-    'Load DetailJUNE2023.csv',
-    'Load DetailMarch2023.csv',
-    'Load DetailMay2023.csv',
-    'Load DetailNovember1-15.2023.csv',
-    'Load DetailNovember16-30.2023.csv'
-]
-
-def load_data(file_paths):
-    all_data = pd.concat([pd.read_csv(file_path) for file_path in file_paths])
-    all_data['Time Full'] = pd.to_datetime(all_data['Time Full'])
-    all_data['Hour'] = all_data['Time Full'].dt.hour
-    
-    # Adjust the shift definition to 7 AM - 7 PM for Day, and 7 PM - 7 AM for Night
-    all_data['Shift'] = all_data['Hour'].apply(lambda x: 'Day' if 7 <= x < 19 else 'Night')
-    
-    # Calculate 'Truck fill (%)' as the ratio of 'Tonnage' to 'Truck Factor', multiplied by 100 to get a percentage
-    all_data['Truck fill (%)'] = (all_data['Tonnage'] / all_data['Truck Factor']) * 100
-    
-    return all_data
-
-
-def create_plot(data):
-    average_fill_by_hour_shift = data.groupby(['Hour', 'Shift'])['Truck fill (%)'].mean().reset_index()
-    fig = px.line(average_fill_by_hour_shift, x='Hour', y='Truck fill (%)', color='Shift',
-                  labels={'Truck fill (%)': 'Average Truck Fill (%)'}, title='Average Truck Fill by Hour and Shift',
-                  color_discrete_map={'Day': 'red', 'Night': 'blue'})
-    fig.update_xaxes(dtick=1)
-    return fig
-
-# Loading data and creating the plot
-data = load_data(file_paths)
-fig = create_plot(data)
-
-# Displaying the plot in your Streamlit app
-st.plotly_chart(fig)
-
-
 import pandas as pd
 import numpy as np
 from scipy.stats import norm
@@ -105,8 +53,8 @@ def plot_distribution(shovel_fill_data, shovel, desired_mean=100, desired_std=5)
     actual_mean = np.mean(shovel_fill_data)
     actual_std = np.std(shovel_fill_data)
 
-    x_min = min(shovel_fill_data) * 0.9
-    x_max = max(shovel_fill_data) * 1.1
+    x_min = 65
+    x_max = 125
     x_range = np.linspace(x_min, x_max, 200)
 
     actual_distribution_y = norm.pdf(x_range, actual_mean, actual_std)
@@ -145,8 +93,8 @@ def plot_distribution(shovel_fill_data, shovel, desired_mean=100, desired_std=5)
         xaxis_title='Truck Fill %',
         yaxis_title='Probability Density',
         legend_title='Legend',
-        height=600,
-        width=1200,
+        height=500,  # Adjusted height to fit the screen
+        width=900,   # Adjusted width to fit the screen
         legend=dict(
             x=1.05,
             y=0.5,
@@ -154,6 +102,7 @@ def plot_distribution(shovel_fill_data, shovel, desired_mean=100, desired_std=5)
             yanchor='top',
             bgcolor='rgba(255,255,255,0.5)'
         ),
+        xaxis=dict(range=[x_min, x_max])
     )
 
     st.plotly_chart(fig)
@@ -187,20 +136,72 @@ def main():
     all_shovels = sorted(list(all_shovels))
 
     # Dropdown for selecting shovel
-    selected_shovel = st.selectbox("Select Shovel", all_shovels)
+    selected_shovel = st.sidebar.selectbox("Select Shovel", all_shovels)
 
     # Dropdowns for mean and standard deviation
-    selected_mean = st.slider("Select Mean (%)", 98, 110, 100, step=1)
-    selected_std = st.slider("Select Standard Deviation (%)", 1, 10, 5, step=1)
+    selected_mean = st.sidebar.slider("Select Mean (%)", 98, 110, 100, step=1)
+    selected_std = st.sidebar.slider("Select Standard Deviation (%)", 1, 10, 5, step=1)
 
     # Plot distribution for selected shovel with selected mean and standard deviation
     shovel_fill_data = load_data(selected_shovel)
     plot_distribution(shovel_fill_data, selected_shovel, selected_mean, selected_std)
 
+
 if __name__ == "__main__":
     main()
 
 
+
+import streamlit as st
+import pandas as pd
+import plotly.express as px
+
+# Define file paths for your CSV files
+file_paths = [
+    'Load DetailApril2023.csv',
+    'Load DetailAugust2023.1-15.csv',
+    'Load DetailSeptember2023.csv',
+    'Load DetailAugust2023.16-31.csv',
+    'Load DetailDecember1-15.2023.csv',
+    'Load DetailDecember16-31.2023.csv',
+    'Load DetailFebruary2023.csv',
+    'Load DetailJanuary2023.csv',
+    'Load DetailJuly2023.csv',
+    'Load DetailJUNE2023.csv',
+    'Load DetailMarch2023.csv',
+    'Load DetailMay2023.csv',
+    'Load DetailNovember1-15.2023.csv',
+    'Load DetailNovember16-30.2023.csv'
+]
+
+def load_data(file_paths):
+    all_data = pd.concat([pd.read_csv(file_path) for file_path in file_paths])
+    all_data['Time Full'] = pd.to_datetime(all_data['Time Full'])
+    all_data['Hour'] = all_data['Time Full'].dt.hour
+    
+    # Adjust the shift definition to 7 AM - 7 PM for Day, and 7 PM - 7 AM for Night
+    all_data['Shift'] = all_data['Hour'].apply(lambda x: 'Day' if 7 <= x < 19 else 'Night')
+    
+    # Calculate 'Truck fill (%)' as the ratio of 'Tonnage' to 'Truck Factor', multiplied by 100 to get a percentage
+    all_data['Truck fill (%)'] = (all_data['Tonnage'] / all_data['Truck Factor']) * 100
+    
+    return all_data
+
+
+def create_plot(data):
+    average_fill_by_hour_shift = data.groupby(['Hour', 'Shift'])['Truck fill (%)'].mean().reset_index()
+    fig = px.line(average_fill_by_hour_shift, x='Hour', y='Truck fill (%)', color='Shift',
+                  labels={'Truck fill (%)': 'Average Truck Fill (%)'}, title='Average Truck Fill by Hour and Shift',
+                  color_discrete_map={'Day': 'red', 'Night': 'blue'})
+    fig.update_xaxes(dtick=1)
+    return fig
+
+# Loading data and creating the plot
+data = load_data(file_paths)
+fig = create_plot(data)
+
+# Displaying the plot in your Streamlit app
+st.plotly_chart(fig)
 
 import streamlit as st
 import plotly.graph_objects as go
