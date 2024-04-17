@@ -245,9 +245,10 @@ def main():
     # Load data for all shovels
     data = load_data(file_paths)
 
-    # Create a multi-select dropdown for shovel selection
-    all_shovels = ['All'] + data['Shovel'].unique().tolist()
-    selected_shovels = st.multiselect("Select Shovels", all_shovels, default=['All'])
+    # Create a multi-select dropdown for shovel selection in the sidebar
+    with st.sidebar:
+        st.write("Material Analysis")
+        selected_shovels = st.multiselect("Select Shovels", ['All'] + data['Shovel'].unique().tolist(), default=['All'])
 
     # Filter data for the selected shovels
     if 'All' in selected_shovels:
@@ -286,6 +287,11 @@ def main():
     fig_pie.update_traces(textinfo='percent+label', textposition='inside')
 
     st.plotly_chart(fig_pie)
+
+# Run the main function
+if __name__ == "__main__":
+    main()
+
 
 import pandas as pd
 import plotly.graph_objects as go
