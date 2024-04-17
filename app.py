@@ -288,9 +288,7 @@ def main():
 
     st.plotly_chart(fig_pie)
 
-# Run the main function
-if __name__ == "__main__":
-    main()
+
 
 
 import pandas as pd
