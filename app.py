@@ -484,35 +484,61 @@ file_paths = [
 
 def load_truck_fill_data():
     all_months_data = []
+    total_improvement = 0
     
     for file_path in file_paths:
         month_data = pd.read_csv(file_path)
         if 'Tonnage' in month_data.columns and 'Truck Factor' in month_data.columns:
             # Add a "Month" column based on the timestamp
-            month_data['Month'] = pd.to_datetime(month_data['Time Full']).dt.strftime('%b')  # Format as abbreviated month names
+            month_data['Month'] = pd.to_datetime(month_data['Time Full']).dt.strftime('%B')  # Extract the full month name
+            month_data['Year'] = pd.to_datetime(month_data['Time Full']).dt.year  # Extract the year
             
             current_truck_fill = (month_data['Tonnage'] / month_data['Truck Factor']) * 100  # Calculate truck fill rate for each row
             current_material_moved = month_data['Tonnage'].sum()
             desired_material_moved = current_material_moved * (1 + calculate_material_increase(current_truck_fill.mean(), 100, 100, 5) / 100)
-            month_name = pd.to_datetime(month_data['Time Full']).dt.strftime('%b').iloc[0]  # Extract the month name from the first row
+            improvement = desired_material_moved - current_material_moved
+            total_improvement += improvement
             
             all_months_data.append({
-                'Month': month_name,
+                'Month': month_data['Month'].iloc[0],  # Full month name
+                'Year': month_data['Year'].iloc[0],
                 'Current Truck Fill Rate': f"{current_truck_fill.mean():.2f}%",  # Format as percentage
                 'Desired Truck Fill Rate': "100%",
-                'Current Material ': f"{current_material_moved:.2e}",  # Scientific notation
-                'Desired Material ': f"{desired_material_moved:.2e}"  # Scientific notation
+                'Current Material': f"{current_material_moved:.2e}",  # Scientific notation
+                'Desired Material': f"{desired_material_moved:.2e}",  # Scientific notation
+                'Improvement': f"{improvement:.2e}"  # Scientific notation
             })
+    
+    # Add a total row
+    total_row = {
+        'Month': 'Total',
+        'Year': '',
+        'Current Truck Fill Rate': '', 
+        'Desired Truck Fill Rate': '',
+        'Current Material': f"{sum(float(month_data['Current Material']) for month_data in all_months_data):.2e}",
+        'Desired Material': f"{sum(float(month_data['Desired Material']) for month_data in all_months_data):.2e}",
+        'Improvement': f"{total_improvement:.2e}"  # Scientific notation
+    }
+    all_months_data.append(total_row)
     
     return all_months_data
 
 # Load your truck fill rate data
 all_months_data = load_truck_fill_data()
 
-# Display the results using Streamlit
-st.title("Current and Desired Truck Fill Rates")
-
+# Convert the list of dictionaries to a DataFrame
 results_df = pd.DataFrame(all_months_data)
+
+# Sort the DataFrame by year and month
+results_df['Month'] = pd.Categorical(results_df['Month'], categories=[
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December', 'Total'
+], ordered=True)
+results_df = results_df.sort_values(by=['Year', 'Month'])
+
+# Display the results using Streamlit
+# Display the results using Streamlit
+st.markdown("<h3><b>Current and Desired Truck Fill Rates</b></h3>", unsafe_allow_html=True)
 
 # Add CSS styling to the header of the table to change the background color
 header_html = """
@@ -531,6 +557,7 @@ st.markdown(header_html, unsafe_allow_html=True)
 
 st.table(results_df)
 
+
 # Calculate total trucks
 total_trucks = 0  # Initialize total number of trucks
 for file_path in file_paths:
@@ -545,6 +572,4 @@ mean_fill = 100  # Desired mean fill rate is 100%
 
 actual_material = 0  # Initialize actual material moved
 desired_material = 0  # Initialize desired material that could be moved
-
-
 
