@@ -353,15 +353,22 @@ monthly_performance['Color'] = monthly_performance['Season'].map(colors)
 month_names = {1: 'Jan', 2: 'Feb', 3: 'Mar', 4: 'Apr', 5: 'May', 6: 'Jun', 7: 'Jul', 8: 'Aug', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dec'}
 
 # Monthly Trend Visualization
-st.title(f'Monthly Truck Fill Rate Trends for {selected_shovel}')
 fig_monthly = go.Figure()
 for season, color in colors.items():
     season_data = monthly_performance[monthly_performance['Season'] == season]
     fig_monthly.add_trace(go.Bar(x=season_data['Month'].map(month_names), y=season_data['Truck Fill Rate (%)'],
-                                  name=season, marker_color=color))
+                                  name=f'{season} Average', marker_color=color))
+    # Adding average line for each season with markers
+    fig_monthly.add_trace(go.Scatter(x=season_data['Month'].map(month_names), y=[season_data['Truck Fill Rate (%)'].mean()] * len(season_data),
+                                     mode='lines+markers', name=f'{season} Average', line=dict(color=color, dash='dash', width=2),
+                                     marker=dict(color=color, size=8)))
 
-fig_monthly.update_layout(xaxis_title='Month', yaxis_title='Average Truck Fill Rate (%)', template='plotly_white')
+fig_monthly.update_layout(xaxis_title='Month', yaxis_title='Average Truck Fill Rate (%)', 
+                          template='plotly_white', yaxis=dict(range=[80, 100]),
+                          title=dict(text=f'Monthly Truck Fill Rate Trends for {selected_shovel}', font=dict(size=18, color='black', family="Arial")))
 st.plotly_chart(fig_monthly)
+
+
 
 import streamlit as st
 import plotly.graph_objects as go
