@@ -340,7 +340,7 @@ widget_id = hash('select_shovel')
 
 # Create a dropdown for shovel selection in the sidebar
 with st.sidebar:
-    st.write("**Note:** This analysis focuses on material destinations.")
+    st.write("Monthly Truck Rates")
     selected_shovel = st.selectbox("Select Shovel", ['All'] + list(data['Shovel'].unique()), key=widget_id)
 
 # Filter data for the selected shovel
