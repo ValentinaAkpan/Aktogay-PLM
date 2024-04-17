@@ -465,9 +465,9 @@ def load_truck_fill_data():
                 'Year': month_data['Year'].iloc[0],
                 'Current Truck Fill Rate': f"{current_truck_fill.mean():.2f}%",  # Format as percentage
                 'Desired Truck Fill Rate': "100%",
-                'Current Material': f"{current_material_moved:.2f}",  # Format as float
-                'Desired Material': f"{desired_material_moved:.2f}",  # Format as float
-                'Improvement': f"{improvement:.2f}"  # Format as float
+                'Current Material': f"{current_material_moved:.2e}",  # Scientific notation
+                'Desired Material': f"{desired_material_moved:.2e}",  # Scientific notation
+                'Improvement': f"{improvement:.2e}"  # Scientific notation
             })
     
     # Add a total row
@@ -476,9 +476,9 @@ def load_truck_fill_data():
         'Year': '',
         'Current Truck Fill Rate': '', 
         'Desired Truck Fill Rate': '',
-        'Current Material': f"{sum(float(month_data['Current Material']) for month_data in all_months_data):.2f}",
-        'Desired Material': f"{sum(float(month_data['Desired Material']) for month_data in all_months_data):.2f}",
-        'Improvement': f"{total_improvement:.2f}"  # Format as float
+        'Current Material': f"{sum(float(month_data['Current Material']) for month_data in all_months_data):.2e}",
+        'Desired Material': f"{sum(float(month_data['Desired Material']) for month_data in all_months_data):.2e}",
+        'Improvement': f"{total_improvement:.2e}"  # Scientific notation
     }
     all_months_data.append(total_row)
     
@@ -498,7 +498,7 @@ results_df['Month'] = pd.Categorical(results_df['Month'], categories=[
 results_df = results_df.sort_values(by=['Year', 'Month'])
 
 # Display the results using Streamlit
-st.markdown("<h3><b>Current and Desired Truck Fill Rates</b></h3>", unsafe_allow_html=True)
+st.markdown("</h3>Current and Desired Truck Fill Rates</h3>", unsafe_allow_html=True)
 
 # Add CSS styling to the header of the table to change the background color
 header_html = """
@@ -513,7 +513,8 @@ th div {
 </style>
 """
 
-st.markdown(header_html, unsafe_allow_html=True)
+# Display the results using Streamlit
+st.markdown("<h3><b>Current and Desired Truck Fill Rates</b></h3>", unsafe_allow_html=True)
 
 st.table(results_df)
 
@@ -529,6 +530,10 @@ for file_path in file_paths:
         total_trucks += month_data['Truck'].sum()
 
 mean_fill = 100  # Desired mean fill rate is 100%
+
+actual_material = 0  # Initialize actual material moved
+desired_material = 0  # Initialize desired material that could be moved
+
 
 actual_material = 0  # Initialize actual material moved
 desired_material = 0  # Initialize desired material that could be moved
