@@ -244,10 +244,13 @@ def main():
     # Load data for all shovels
     data = load_data(file_paths)
 
+    # Create a unique widget ID for the multiselect widget
+    widget_id = hash('select_shovels')
+
     # Create a multi-select dropdown for shovel selection in the sidebar
     with st.sidebar:
         st.write("**Note:** This analysis focuses on material destinations.")
-        selected_shovels = st.multiselect("Select Shovels", ['All'] + data['Shovel'].unique().tolist(), default=['All'])
+        selected_shovels = st.multiselect("Select Shovels", ['All'] + data['Shovel'].unique().tolist(), default=['All'], key=widget_id)
 
     # Filter data for the selected shovels
     if 'All' in selected_shovels:
@@ -289,8 +292,6 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
 
 import pandas as pd
 import plotly.graph_objects as go
