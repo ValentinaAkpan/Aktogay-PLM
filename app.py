@@ -287,6 +287,8 @@ def main():
 
     st.plotly_chart(fig_pie)
 
+if __name__ == "__main__":
+    main()
 
 
 
@@ -576,6 +578,4 @@ mean_fill = 100  # Desired mean fill rate is 100%
 actual_material = 0  # Initialize actual material moved
 desired_material = 0  # Initialize desired material that could be moved
 
-# Run the main function
-if __name__ == "__main__":
-    main()
+
