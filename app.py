@@ -151,7 +151,6 @@ if __name__ == "__main__":
     main()
 
 
-
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -185,15 +184,24 @@ def load_data(file_paths):
     # Calculate 'Truck fill (%)' as the ratio of 'Tonnage' to 'Truck Factor', multiplied by 100 to get a percentage
     all_data['Truck fill (%)'] = (all_data['Tonnage'] / all_data['Truck Factor']) * 100
     
+    # Filter data to cover only the period from 7 AM to 7 AM
+    all_data = all_data[(all_data['Hour'] >= 7) | (all_data['Hour'] < 7)]
+    
     return all_data
 
 
 def create_plot(data):
     average_fill_by_hour_shift = data.groupby(['Hour', 'Shift'])['Truck fill (%)'].mean().reset_index()
+    
+    # Plot with adjusted colors
     fig = px.line(average_fill_by_hour_shift, x='Hour', y='Truck fill (%)', color='Shift',
                   labels={'Truck fill (%)': 'Average Truck Fill (%)'}, title='Average Truck Fill by Hour and Shift',
                   color_discrete_map={'Day': 'red', 'Night': 'blue'})
-    fig.update_xaxes(dtick=1)
+    
+    # Add another x-axis for Night shift (7 PM - 7 AM)
+    fig.update_layout(xaxis2=dict(dtick=1, title='Hour (Night Shift)', overlaying='x', side='top'))
+    
+    fig.update_xaxes(dtick=1)  # Adjusting tick frequency for better readability
     return fig
 
 # Loading data and creating the plot
@@ -202,6 +210,7 @@ fig = create_plot(data)
 
 # Displaying the plot in your Streamlit app
 st.plotly_chart(fig)
+
 
 import streamlit as st
 import plotly.graph_objects as go
