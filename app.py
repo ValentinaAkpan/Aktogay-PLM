@@ -171,7 +171,6 @@ def main():
 if __name__ == "__main__":
     main()
 
-
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -231,6 +230,17 @@ fig = create_plot(data)
 
 # Displaying the plot in your Streamlit app
 st.plotly_chart(fig)
+
+# Additional analysis option
+st.markdown(
+"""
+During day shifts, the average truck fill percentage is 94.89%, indicating efficient operations during daytime hours.Night shifts show slightly lower average truck fill percentages at 94.76%, but still demonstrate good operational efficiency.
+Peak hours, from 10 AM to 4 PM, exhibit the highest average truck fill percentage at 94.92%, suggesting optimized operations during this period. Similarly, peak night hours, from 10 PM to 4 AM, maintain a high average truck fill percentage of 94.75%, indicating efficient operations during the night shift.
+
+These insights collectively suggest that both day and night shifts are well-managed, with peak hours showing particularly high efficiency.
+"""
+)
+
 
 import streamlit as st
 import plotly.graph_objects as go
