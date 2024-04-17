@@ -211,7 +211,6 @@ fig = create_plot(data)
 # Displaying the plot in your Streamlit app
 st.plotly_chart(fig)
 
-
 import streamlit as st
 import plotly.graph_objects as go
 import pandas as pd
@@ -245,9 +244,9 @@ def main():
     # Load data for all shovels
     data = load_data(file_paths)
 
-    # Create a multi-select dropdown for shovel selection in the sidebar
+    # Create a multi-select dropdown for shovel selection in the existing sidebar
     with st.sidebar:
-        st.write("Material Analysis")
+        st.write("**Note:** This analysis focuses on material destinations.")
         selected_shovels = st.multiselect("Select Shovels", ['All'] + data['Shovel'].unique().tolist(), default=['All'])
 
     # Filter data for the selected shovels
@@ -288,8 +287,9 @@ def main():
 
     st.plotly_chart(fig_pie)
 
-
-
+# Run the main function
+if __name__ == "__main__":
+    main()
 
 import pandas as pd
 import plotly.graph_objects as go
