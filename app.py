@@ -535,17 +535,4 @@ mean_fill = 100  # Desired mean fill rate is 100%
 actual_material = 0  # Initialize actual material moved
 desired_material = 0  # Initialize desired material that could be moved
 
-st.markdown(header_html, unsafe_allow_html=True)
-st.table(results_df)
 
-# Productivity Improvement Report
-st.markdown("<h3><b>Productivity Improvement Summary</b></h3>", unsafe_allow_html=True)
-
-summary_report = """
-Based on the analysis, it can be stated that the overall productivity improvement for the year 2023 is substantial. 
-Throughout the year, the actual material moved amounted to {:.2e} tons, while the desired material that could be moved 
-was {:.2e} tons. This represents a significant improvement potential, of {:.2e} tons 
-between the actual and desired material moved. 
-"""
-
-st.markdown(summary_report.format(total_actual_material, total_desired_material, total_year_improvement))
