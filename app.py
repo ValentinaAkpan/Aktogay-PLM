@@ -249,7 +249,7 @@ def main():
 
     # Create a multi-select dropdown for shovel selection in the sidebar
     with st.sidebar:
-        st.write("**Note:** This analysis focuses on material destinations.")
+        st.write("Material Analysis")
         selected_shovels = st.multiselect("Select Shovels", ['All'] + data['Shovel'].unique().tolist(), default=['All'], key=widget_id)
 
     # Filter data for the selected shovels
@@ -335,9 +335,13 @@ def load_data(file_paths):
 
 data = load_data(file_paths)
 
-# Create a dropdown for shovel selection
-shovel_options = ['All'] + list(data['Shovel'].unique())
-selected_shovel = st.selectbox("Select Shovel", shovel_options)
+# Create a unique widget ID for the selectbox widget
+widget_id = hash('select_shovel')
+
+# Create a dropdown for shovel selection in the sidebar
+with st.sidebar:
+    st.write("**Note:** This analysis focuses on material destinations.")
+    selected_shovel = st.selectbox("Select Shovel", ['All'] + list(data['Shovel'].unique()), key=widget_id)
 
 # Filter data for the selected shovel
 if selected_shovel == 'All':
@@ -363,17 +367,16 @@ fig_monthly = go.Figure()
 for season, color in colors.items():
     season_data = monthly_performance[monthly_performance['Season'] == season]
     fig_monthly.add_trace(go.Bar(x=season_data['Month'].map(month_names), y=season_data['Truck Fill Rate (%)'],
-                                  name=f'{season} Average', marker_color=color))
+                                 name=f'{season} Average', marker_color=color))
     # Adding average line for each season with markers
     fig_monthly.add_trace(go.Scatter(x=season_data['Month'].map(month_names), y=[season_data['Truck Fill Rate (%)'].mean()] * len(season_data),
-                                     mode='lines+markers', name=f'{season} Average', line=dict(color=color, dash='dash', width=2),
-                                     marker=dict(color=color, size=8)))
+                                      mode='lines+markers', name=f'{season} Average', line=dict(color=color, dash='dash', width=2),
+                                      marker=dict(color=color, size=8)))
 
-fig_monthly.update_layout(xaxis_title='Month', yaxis_title='Average Truck Fill Rate (%)', 
+fig_monthly.update_layout(xaxis_title='Month', yaxis_title='Average Truck Fill Rate (%)',
                           template='plotly_white', yaxis=dict(range=[80, 100]),
                           title=dict(text=f'Monthly Truck Fill Rate Trends for {selected_shovel}', font=dict(size=18, color='black', family="Arial")))
 st.plotly_chart(fig_monthly)
-
 
 
 import streamlit as st
