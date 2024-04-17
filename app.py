@@ -126,7 +126,7 @@ def main():
     st.markdown("Date: 2024-04-17")
     st.markdown("## Introduction")
     st.markdown("The purpose of this analysis is to evaluate the potential improvements in operational efficiency with the implementation of ShovelMetrics™ Payload Monitoring (SM-PLM). By analyzing the truck fill distribution data, we aim to identify areas where optimizations can be made to enhance productivity and reduce operational risks.")
-    st.markdown("To illustrate potential improvements with SM-PLM, the below distributions are shown with a target fill of 100% and a standard deviation of 5% to emulate the distribution with SM-PLM. The number of trucks is kept constant, and both curves share the same area and cumulative distribution.")
+    st.markdown("To illustrate potential improvements with SM-PLM, the below distributions are shown with a target fill of 100% and a standard deviation of 5% to emulate the distribution with SM-PLM.")
     
     # Add the rest of the code here...
 
