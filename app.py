@@ -244,7 +244,7 @@ def main():
     # Load data for all shovels
     data = load_data(file_paths)
 
-    # Create a multi-select dropdown for shovel selection in the existing sidebar
+    # Create a multi-select dropdown for shovel selection in the sidebar
     with st.sidebar:
         st.write("**Note:** This analysis focuses on material destinations.")
         selected_shovels = st.multiselect("Select Shovels", ['All'] + data['Shovel'].unique().tolist(), default=['All'])
@@ -290,6 +290,7 @@ def main():
 # Run the main function
 if __name__ == "__main__":
     main()
+
 
 import pandas as pd
 import plotly.graph_objects as go
