@@ -516,7 +516,7 @@ results_df['Month'] = pd.Categorical(results_df['Month'], categories=[
 results_df = results_df.sort_values(by=['Year', 'Month'])
 
 # Display the results using Streamlit
-st.markdown("<h3><b>Current and Desired Truck Fill Rates</b></h3>", unsafe_allow_html=True)
+st.markdown("<h4><b>Current and Desired Truck Fill Rates</b></h4>", unsafe_allow_html=True)
 
 # Add CSS styling to the header of the table to change the background color
 header_html = """
