@@ -434,23 +434,12 @@ fig_monthly.update_layout(xaxis_title='Month', yaxis_title='Average Truck Fill R
                           template='plotly_white', yaxis=dict(range=[80, 100]),
                           title=dict(text=f'Monthly Truck Fill Rate Trends for {selected_shovel}', font=dict(size=18, color='black', family="Arial")))
 st.plotly_chart(fig_monthly)
-
-import streamlit as st
 import pandas as pd
 from scipy.stats import norm
+import streamlit as st
+import plotly.graph_objects as go
 
-def calculate_material_increase(current_mean, current_std, desired_mean=100, desired_std=5):
-    # Compute z-scores for desired and current means
-    z_current = (desired_mean - current_mean) / current_std
-    z_desired = 0  # The desired mean is at the peak of the normal distribution (z-score = 0)
-    
-    # Compute the potential increase using CDF
-    potential_increase = norm.cdf(z_current) - norm.cdf(z_desired)
-    
-    # Return the potential increase as a percentage
-    return potential_increase * 100
-
-# Load your truck fill rate data from the CSV files
+# Load data
 file_paths = [
     'Load DetailApril2023.csv',
     'Load DetailAugust2023.1-15.csv',
@@ -468,9 +457,28 @@ file_paths = [
     'Load DetailNovember16-30.2023.csv'
 ]
 
+@st.cache(allow_output_mutation=True)
+def load_data(file_paths):
+    data = pd.concat([pd.read_csv(file) for file in file_paths])
+    return data
+
+def calculate_material_increase(current_mean, current_std, desired_mean=100, desired_std=5):
+    # Compute z-scores for desired and current means
+    z_current = (desired_mean - current_mean) / current_std
+    z_desired = 0  # The desired mean is at the peak of the normal distribution (z-score = 0)
+    
+    # Compute the potential increase using CDF
+    potential_increase = norm.cdf(z_current) - norm.cdf(z_desired)
+    
+    # Return the potential increase as a percentage
+    return potential_increase * 100
+
 def load_truck_fill_data():
     all_months_data = []
     total_improvement = 0
+    
+    # Create a dictionary to store aggregated data for each month
+    month_aggregated_data = {}
     
     for file_path in file_paths:
         month_data = pd.read_csv(file_path)
@@ -485,15 +493,26 @@ def load_truck_fill_data():
             improvement = desired_material_moved - current_material_moved
             total_improvement += improvement
             
-            all_months_data.append({
-                'Month': month_data['Month'].iloc[0],  # Full month name
-                'Year': month_data['Year'].iloc[0],
-                'Current Truck Fill Rate': f"{current_truck_fill.mean():.2f}%",  # Format as percentage
-                'Desired Truck Fill Rate': "100%",
-                'Current Material': f"{current_material_moved:.2e}",  # Scientific notation
-                'Desired Material': f"{desired_material_moved:.2e}",  # Scientific notation
-                'Improvement': f"{improvement:.2e}"  # Scientific notation
-            })
+            month_year_key = (month_data['Month'].iloc[0], month_data['Year'].iloc[0])  # Create a tuple (Month, Year) as the key
+            
+            # Aggregate data for the same month and year
+            if month_year_key in month_aggregated_data:
+                month_aggregated_data[month_year_key]['Current Material'] += current_material_moved
+                month_aggregated_data[month_year_key]['Desired Material'] += desired_material_moved
+                month_aggregated_data[month_year_key]['Improvement'] += improvement
+            else:
+                month_aggregated_data[month_year_key] = {
+                    'Month': month_data['Month'].iloc[0],  # Full month name
+                    'Year': month_data['Year'].iloc[0],
+                    'Current Truck Fill Rate': f"{current_truck_fill.mean():.2f}%",  # Format as percentage
+                    'Desired Truck Fill Rate': "100%",
+                    'Current Material': current_material_moved,  # Aggregate material moved for the month
+                    'Desired Material': desired_material_moved,  # Aggregate desired material moved for the month
+                    'Improvement': improvement  # Aggregate improvement for the month
+                }
+    
+    # Convert the aggregated data dictionary to a list
+    all_months_data = list(month_aggregated_data.values())
     
     # Add a total row
     total_row = {
@@ -501,8 +520,8 @@ def load_truck_fill_data():
         'Year': '',
         'Current Truck Fill Rate': '', 
         'Desired Truck Fill Rate': '',
-        'Current Material': f"{sum(float(month_data['Current Material']) for month_data in all_months_data):.2e}",
-        'Desired Material': f"{sum(float(month_data['Desired Material']) for month_data in all_months_data):.2e}",
+        'Current Material': f"{sum(month_data['Current Material'] for month_data in all_months_data):.2e}",
+        'Desired Material': f"{sum(month_data['Desired Material'] for month_data in all_months_data):.2e}",
         'Improvement': f"{total_improvement:.2e}"  # Scientific notation
     }
     all_months_data.append(total_row)
@@ -540,5 +559,6 @@ th div {
 
 st.markdown(header_html, unsafe_allow_html=True)
 st.table(results_df)
+
 
 
