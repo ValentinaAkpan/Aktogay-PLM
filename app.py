@@ -430,7 +430,6 @@ st.plotly_chart(fig_monthly)
 
 import streamlit as st
 import pandas as pd
-import numpy as np
 from scipy.stats import norm
 
 def calculate_material_increase(current_mean, current_std, desired_mean=100, desired_std=5):
@@ -517,7 +516,7 @@ results_df['Month'] = pd.Categorical(results_df['Month'], categories=[
 results_df = results_df.sort_values(by=['Year', 'Month'])
 
 # Display the results using Streamlit
-st.markdown("</h3>Current and Desired Truck Fill Rates</h3>", unsafe_allow_html=True)
+st.markdown("<h3><b>Current and Desired Truck Fill Rates</b></h3>", unsafe_allow_html=True)
 
 # Add CSS styling to the header of the table to change the background color
 header_html = """
@@ -532,28 +531,7 @@ th div {
 </style>
 """
 
-# Display the results using Streamlit
-st.markdown("<h3><b>Current and Desired Truck Fill Rates</b></h3>", unsafe_allow_html=True)
-
+st.markdown(header_html, unsafe_allow_html=True)
 st.table(results_df)
 
-
-# Calculate total trucks
-total_trucks = 0  # Initialize total number of trucks
-for file_path in file_paths:
-    month_data = pd.read_csv(file_path)
-    if 'Truck' in month_data.columns:
-        # Convert values in the "Truck" column to numeric, ignoring errors
-        month_data['Truck'] = pd.to_numeric(month_data['Truck'], errors='coerce')
-        # Sum up the numeric values in the "Truck" column
-        total_trucks += month_data['Truck'].sum()
-
-mean_fill = 100  # Desired mean fill rate is 100%
-
-actual_material = 0  # Initialize actual material moved
-desired_material = 0  # Initialize desired material that could be moved
-
-
-actual_material = 0  # Initialize actual material moved
-desired_material = 0  # Initialize desired material that could be moved
 
