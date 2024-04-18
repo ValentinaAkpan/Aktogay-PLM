@@ -238,7 +238,6 @@ These insights collectively suggest that both day and night shifts are well-mana
 """
 )
 
-
 import streamlit as st
 import plotly.graph_objects as go
 import pandas as pd
@@ -290,36 +289,41 @@ def main():
     data_cleaned = shovel_data.dropna()
 
     # Filter and summarize tonnage for each destination category
-    crusher_data = data_cleaned[data_cleaned['Assigned Dump'].str.contains('CRUSHER')]
-    dlp_data = data_cleaned[data_cleaned['Assigned Dump'].str.contains('DLP')]
-    stockpile_data = data_cleaned[~data_cleaned['Assigned Dump'].str.contains('CRUSHER|DLP', regex=True)]
-    hg_data = data_cleaned[data_cleaned['Material'] == 'HG']
-    lg_data = data_cleaned[data_cleaned['Material'].str.contains('LG')]
+    assigned_dump_data = data_cleaned['Assigned Dump'].value_counts()
+    material_data = data_cleaned['Material'].value_counts()
 
-    # Calculate total tonnage for each category
-    hg_total = hg_data['Tonnage'].sum()
-    lg_total = lg_data['Tonnage'].sum()
-    crusher_total = crusher_data['Tonnage'].sum()
-    dlp_total = dlp_data['Tonnage'].sum()
-    stockpile_total = stockpile_data['Tonnage'].sum()
+    # Find highest dump and its count
+    highest_dump = assigned_dump_data.idxmax()
+    highest_dump_count = assigned_dump_data.max()
+    # Find lowest dump and its count
+    lowest_dump = assigned_dump_data.idxmin()
+    lowest_dump_count = assigned_dump_data.min()
 
-    # Create a dictionary for destination tonnage
-    destination_tonnage = {
-        'High Grade (HG)': hg_total,
-        'Low Grade (LG)': lg_total,
-        'Crusher': crusher_total,
-        'Acid Leach Pad (DLP)': dlp_total,
-        'Stockpiles': stockpile_total
-    }
+    # Find highest, second highest, and lowest grades
+    material_grade_counts = material_data.sort_values(ascending=False)
+    highest_grade = material_grade_counts.index[0]
+    second_highest_grade = material_grade_counts.index[1]
+    lowest_grade = material_grade_counts.index[-1]
 
-    # Create pie chart
-    fig_pie = go.Figure(data=[go.Pie(labels=list(destination_tonnage.keys()), values=list(destination_tonnage.values()), hole=0.3)])
-    fig_pie.update_traces(textinfo='percent+label', textposition='inside')
+    # Display report as a paragraph
+    report_paragraph = f"The highest dump is {highest_dump}, occurring {highest_dump_count} times, and the lowest dump is {lowest_dump}, occurring {lowest_dump_count} times. The highest grade is {highest_grade}, followed by {second_highest_grade} as the second highest grade, and {lowest_grade} as the lowest grade."
+    st.write(report_paragraph)
 
-    st.plotly_chart(fig_pie)
+    # Create pie chart for Assigned Dump
+    fig_assigned_dump = go.Figure(data=[go.Pie(labels=assigned_dump_data.index, values=assigned_dump_data.values, hole=0.3)])
+    fig_assigned_dump.update_traces(textinfo='percent+label', textposition='inside')
+    st.write(f"## Material Destination Distribution ({', '.join(selected_shovels)})", unsafe_allow_html=True, style="font-size: 20px;")
+    st.plotly_chart(fig_assigned_dump)
+
+    # Create pie chart for Material Grade
+    fig_material_grade = go.Figure(data=[go.Pie(labels=material_data.index, values=material_data.values, hole=0.3)])
+    fig_material_grade.update_traces(textinfo='percent+label', textposition='inside')
+    st.write(f"## Material Grade Distribution ({', '.join(selected_shovels)})", unsafe_allow_html=True, style="font-size: 20px;")
+    st.plotly_chart(fig_material_grade)
 
 if __name__ == "__main__":
     main()
+
 
 import pandas as pd
 import plotly.graph_objects as go
