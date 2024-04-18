@@ -294,7 +294,6 @@ def main():
 
     st.markdown(f'<h1 style="font-size: 24px;">{selected_title}</h1>', unsafe_allow_html=True)
 
-
     # Filter data for the selected shovels
     if 'All' in selected_shovels or not selected_shovels:
         shovel_data = data
@@ -304,38 +303,47 @@ def main():
     # Drop rows with any NaN values in the dataframe to avoid errors in processing
     data_cleaned = shovel_data.dropna()
 
-    # Filter and summarize tonnage for each destination category
-    assigned_dump_data = data_cleaned['Assigned Dump'].value_counts()
-    material_data = data_cleaned['Material'].value_counts()
+    # Create a function to categorize destinations
+    def categorize_destination(destination):
+        if 'CRUSHER' in destination:
+            return 'Crusher'
+        elif destination.startswith('STK'):
+            return 'STK'
+        elif destination.startswith('DLP'):
+            return 'DLP'
+        else:
+            return 'Other'
 
-    # Find highest dump and its count
-    highest_dump = assigned_dump_data.idxmax()
-    highest_dump_count = assigned_dump_data.max()
-    # Find lowest dump and its count
-    lowest_dump = assigned_dump_data.idxmin()
-    lowest_dump_count = assigned_dump_data.min()
+    # Apply the categorization function to create a new column
+    data_cleaned['Destination Category'] = data_cleaned['Assigned Dump'].apply(categorize_destination)
 
-    # Find highest, second highest, and lowest grades
-    material_grade_counts = material_data.sort_values(ascending=False)
-    highest_grade = material_grade_counts.index[0]
-    second_highest_grade = material_grade_counts.index[1]
-    lowest_grade = material_grade_counts.index[-1]
+    # Aggregate data for different destination categories
+    destination_counts = data_cleaned['Destination Category'].value_counts()
 
-    # Display report as a paragraph
-    report_paragraph = f"The highest dump is {highest_dump}, occurring {highest_dump_count} times, and the lowest dump is {lowest_dump}, occurring {lowest_dump_count} times. The highest grade is {highest_grade}, followed by {second_highest_grade} as the second highest grade, and {lowest_grade} as the lowest grade."
+    # Generate the write-up dynamically based on the data
+    highest_category = destination_counts.idxmax() if not destination_counts.empty else "None"
+    highest_count = destination_counts.max() if not destination_counts.empty else 0
+    lowest_category = destination_counts.idxmin() if not destination_counts.empty else "None"
+    lowest_count = destination_counts.min() if not destination_counts.empty else 0
+
+    report_paragraph = f"The most frequent destination category is {highest_category} with {highest_count} occurrences, and the least frequent is {lowest_category} with {lowest_count} occurrences.\n\n"
+    for category, count in destination_counts.items():
+        report_paragraph += f"- {category} counts for {count} occurrences.\n"
+
+    # Display the generated write-up
     st.write(report_paragraph, style="font-size: 16px;")  # Adjusting font size
 
-    # Create pie chart for Assigned Dump
-    fig_assigned_dump = go.Figure(data=[go.Pie(labels=assigned_dump_data.index, values=assigned_dump_data.values, hole=0.3)])
-    fig_assigned_dump.update_traces(textinfo='percent+label', textposition='inside')
+    # Create pie chart for destination distribution
+    fig_destination = go.Figure(data=[go.Pie(labels=destination_counts.index, values=destination_counts.values, hole=0.3)])
+    fig_destination.update_traces(textinfo='percent+label', textposition='inside')
     st.markdown(f'<h2 style="font-size: 20px;">Material Destination Distribution</h2>', unsafe_allow_html=True)
-    st.plotly_chart(fig_assigned_dump)
+    st.plotly_chart(fig_destination)
 
-    # Create pie chart for Material Grade
+    # Material Grade Distribution (Retained)
+    material_data = data_cleaned['Material'].value_counts()
     fig_material_grade = go.Figure(data=[go.Pie(labels=material_data.index, values=material_data.values, hole=0.3)])
     fig_material_grade.update_traces(textinfo='percent+label', textposition='inside')
     st.markdown(f'<h2 style="font-size: 20px;">Material Grade Distribution</h2>', unsafe_allow_html=True)
-
     st.plotly_chart(fig_material_grade)
 
 if __name__ == "__main__":
