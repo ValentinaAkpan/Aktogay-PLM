@@ -167,10 +167,9 @@ def main():
 if __name__ == "__main__":
     main()
 
-
 import streamlit as st
 import pandas as pd
-import plotly.express as px
+import plotly.graph_objects as go
 
 # Define file paths for your CSV files
 file_paths = [
@@ -194,49 +193,60 @@ def load_data(file_paths):
     all_data = pd.concat([pd.read_csv(file_path) for file_path in file_paths])
     all_data['Time Full'] = pd.to_datetime(all_data['Time Full'])
     all_data['Hour'] = all_data['Time Full'].dt.hour
-    
-    # Adjust the shift definition to 7 AM - 7 PM for Day, and 7 PM - 7 AM for Night
     all_data['Shift'] = all_data['Hour'].apply(lambda x: 'Day' if 7 <= x < 19 else 'Night')
-    
-    # Calculate 'Truck fill (%)' as the ratio of 'Tonnage' to 'Truck Factor', multiplied by 100 to get a percentage
     all_data['Truck fill (%)'] = (all_data['Tonnage'] / all_data['Truck Factor']) * 100
-    
-    # Filter data to cover only the period from 7 AM to 7 AM
-    all_data = all_data[(all_data['Hour'] >= 7) | (all_data['Hour'] < 7)]
-    
     return all_data
 
+def adjust_hours_for_plot(df):
+    # This shifts hours so that 7 AM starts at 0 (for easier plotting and logical grouping)
+    df['Adjusted Hour'] = df['Hour'].apply(lambda x: (x + 17) % 24)
+    df.sort_values(by=['Adjusted Hour'], inplace=True)
+    return df
 
 def create_plot(data):
-    average_fill_by_hour_shift = data.groupby(['Hour', 'Shift'])['Truck fill (%)'].mean().reset_index()
+    data = adjust_hours_for_plot(data)
+    average_fill_by_hour_shift = data.groupby(['Adjusted Hour', 'Shift'])['Truck fill (%)'].mean().reset_index()
     
-    # Plot with adjusted colors
-    fig = px.line(average_fill_by_hour_shift, x='Hour', y='Truck fill (%)', color='Shift',
-                  labels={'Truck fill (%)': 'Average Truck Fill (%)'}, title='Average Truck Fill by Hour and Shift',
-                  color_discrete_map={'Day': 'red', 'Night': 'blue'})
+    trace_day = go.Scatter(
+        x=average_fill_by_hour_shift[average_fill_by_hour_shift['Shift'] == 'Day']['Adjusted Hour'],
+        y=average_fill_by_hour_shift[average_fill_by_hour_shift['Shift'] == 'Day']['Truck fill (%)'],
+        mode='lines',
+        name='Day Shift',
+        line=dict(color='red')
+    )
     
-    # Add another x-axis for Night shift (7 PM - 7 AM)
-    fig.update_layout(xaxis2=dict(dtick=1, title='Hour (Night Shift)', overlaying='x', side='top'))
+    trace_night = go.Scatter(
+        x=average_fill_by_hour_shift[average_fill_by_hour_shift['Shift'] == 'Night']['Adjusted Hour'],
+        y=average_fill_by_hour_shift[average_fill_by_hour_shift['Shift'] == 'Night']['Truck fill (%)'],
+        mode='lines',
+        name='Night Shift',
+        line=dict(color='blue')
+    )
+
+    layout = go.Layout(
+        title='Average Truck Fill by Hour and Shift (7 AM to 7 AM)',
+        xaxis=dict(title='Hour (Adjusted for 7 AM Start)', dtick=1, tickvals=list(range(24)), ticktext=[f"{(h+7)%24}:00" for h in range(24)]),
+        yaxis=dict(title='Average Truck Fill (%)')
+    )
     
-    fig.update_xaxes(dtick=1)  # Adjusting tick frequency for better readability
+    fig = go.Figure(data=[trace_day, trace_night], layout=layout)
+    
     return fig
 
-# Loading data and creating the plot
 data = load_data(file_paths)
 fig = create_plot(data)
 
-# Displaying the plot in your Streamlit app
 st.plotly_chart(fig)
 
-# Additional analysis option
-st.markdown(
-"""
-During day shifts, the average truck fill percentage is 94.89%, indicating efficient operations during daytime hours.Night shifts show slightly lower average truck fill percentages at 94.76%, but still demonstrate good operational efficiency.
-Peak hours, from 10 AM to 4 PM, exhibit the highest average truck fill percentage at 94.92%, suggesting optimized operations during this period. Similarly, peak night hours, from 10 PM to 4 AM, maintain a high average truck fill percentage of 94.75%, indicating efficient operations during the night shift.
+# Analyzing the data
+day_mean = data[data['Shift'] == 'Day']['Truck fill (%)'].mean()
+night_mean = data[data['Shift'] == 'Night']['Truck fill (%)'].mean()
+peak_day = data[(data['Shift'] == 'Day') & (data['Hour'].between(10, 16))]['Truck fill (%)'].mean()
+peak_night = data[(data['Shift'] == 'Night') & ((data['Hour'] >= 22) | (data['Hour'] <= 4))]['Truck fill (%)'].mean()
 
-These insights collectively suggest that both day and night shifts are well-managed, with peak hours showing particularly high efficiency.
-"""
-)
+st.write("During day shifts, the average truck fill percentage is {:.2f}%, indicating efficient operations during daytime hours. Night shifts show slightly lower average truck fill percentages at {:.2f}%,.".format(day_mean, night_mean))
+
+
 
 import streamlit as st
 import plotly.graph_objects as go
