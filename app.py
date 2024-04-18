@@ -3,7 +3,6 @@ import numpy as np
 from scipy.stats import norm
 import plotly.graph_objects as go
 import streamlit as st
-import calendar
 
 def load_data(shovel):
     path_to_csvs = './'
@@ -107,16 +106,9 @@ def plot_distribution(shovel_fill_data, shovel, desired_mean=100, desired_std=5)
 
     st.plotly_chart(fig)
 
-def generate_markdown_explanation(actual_mean, actual_std, desired_mean, desired_std):
+def generate_markdown_explanation(actual_mean, actual_std, desired_mean, desired_std, shovel):
     explanation = f"""
-    To illustrate potential improvements with the implemented approach, the above distributions represent the actual and desired truck fill rates for the selected shovel.
-    
-    Actual Mean: {actual_mean:.2f}%
-    Actual Std Dev: {actual_std:.2f}%
-    Desired Mean: {desired_mean}%
-    Desired Std Dev: {desired_std}%
-    
-    By optimizing the truck fill rates to achieve the desired mean and standard deviation, we can enhance operational efficiency and ensure a more consistent material movement process.
+    The purpose of this analysis is to evaluate the potential improvements in operational efficiency with the implementation of ShovelMetrics™ Payload Monitoring (SM-PLM). By analyzing the truck fill distribution data, we aim to identify areas where optimizations can be made to enhance productivity and reduce operational risks. To illustrate potential improvements with SM-PLM for shovel '{shovel}', the below distributions are shown with a target fill of {desired_mean}% and a standard deviation of {desired_std}% to emulate the distribution with SM-PLM.
     """
     return explanation
 
@@ -124,14 +116,8 @@ def main():
     st.title("Potential Improvements to Operational Efficiency with ShovelMetrics™ Payload Monitoring")
     st.markdown("Prepared for: Aktogay Mine")
     st.markdown("Date: 2024-04-17")
-    st.markdown("## Introduction")
-    st.markdown("The purpose of this analysis is to evaluate the potential improvements in operational efficiency with the implementation of ShovelMetrics™ Payload Monitoring (SM-PLM). By analyzing the truck fill distribution data, we aim to identify areas where optimizations can be made to enhance productivity and reduce operational risks.")
-    st.markdown("To illustrate potential improvements with SM-PLM, the below distributions are shown with a target fill of 100% and a standard deviation of 5% to emulate the distribution with SM-PLM.")
+    intro_placeholder = st.empty()  # Placeholder for the introductory text
     
-    # Add the rest of the code here...
-
-
-
     # Get all available shovels dynamically
     all_shovels = set()
     months = ['Load DetailApril2023',
@@ -164,12 +150,23 @@ def main():
     selected_mean = st.sidebar.slider("Select Mean (%)", 98, 110, 100, step=1)
     selected_std = st.sidebar.slider("Select Standard Deviation (%)", 1, 10, 5, step=1)
 
+    # Placeholder for the explanation text
+    explanation_placeholder = st.empty()
+
     # Plot distribution for selected shovel with selected mean and standard deviation
     shovel_fill_data = load_data(selected_shovel)
     plot_distribution(shovel_fill_data, selected_shovel, selected_mean, selected_std)
 
+    # Generate explanation text dynamically based on selected parameters
+    actual_mean = np.mean(shovel_fill_data) if shovel_fill_data else 0
+    actual_std = np.std(shovel_fill_data) if shovel_fill_data else 0
+    explanation_text = generate_markdown_explanation(actual_mean, actual_std, selected_mean, selected_std, selected_shovel)
+    explanation_placeholder.markdown(explanation_text)
+
+ 
 if __name__ == "__main__":
     main()
+
 
 import streamlit as st
 import pandas as pd
