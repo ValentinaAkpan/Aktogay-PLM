@@ -266,7 +266,7 @@ def load_data(file_paths):
     return data
 
 def main():
-    st.subheader('Material Destination Analysis')
+    st.subheader('Material Analysis')
 
     # Load data for all shovels
     data = load_data(file_paths)
@@ -279,8 +279,17 @@ def main():
         st.write("Material Analysis")
         selected_shovels = st.multiselect("Select Shovels", ['All'] + data['Shovel'].unique().tolist(), default=['All'], key=widget_id)
 
+    # Update title based on selected shovels
+    if selected_shovels:
+        selected_title = "Material Destination Distribution for " + ", ".join(selected_shovels)
+    else:
+        selected_title = "Material Destination Distribution for All Shovels"
+
+    st.markdown(f'<h1 style="font-size: 24px;">{selected_title}</h1>', unsafe_allow_html=True)
+
+
     # Filter data for the selected shovels
-    if 'All' in selected_shovels:
+    if 'All' in selected_shovels or not selected_shovels:
         shovel_data = data
     else:
         shovel_data = data[data['Shovel'].isin(selected_shovels)]
@@ -307,18 +316,19 @@ def main():
 
     # Display report as a paragraph
     report_paragraph = f"The highest dump is {highest_dump}, occurring {highest_dump_count} times, and the lowest dump is {lowest_dump}, occurring {lowest_dump_count} times. The highest grade is {highest_grade}, followed by {second_highest_grade} as the second highest grade, and {lowest_grade} as the lowest grade."
-    st.write(report_paragraph)
+    st.write(report_paragraph, style="font-size: 16px;")  # Adjusting font size
 
     # Create pie chart for Assigned Dump
     fig_assigned_dump = go.Figure(data=[go.Pie(labels=assigned_dump_data.index, values=assigned_dump_data.values, hole=0.3)])
     fig_assigned_dump.update_traces(textinfo='percent+label', textposition='inside')
-    st.write(f"## Material Destination Distribution ({', '.join(selected_shovels)})", unsafe_allow_html=True, style="font-size: 20px;")
+    st.markdown(f'<h2 style="font-size: 20px;">Material Destination Distribution</h2>', unsafe_allow_html=True)
     st.plotly_chart(fig_assigned_dump)
 
     # Create pie chart for Material Grade
     fig_material_grade = go.Figure(data=[go.Pie(labels=material_data.index, values=material_data.values, hole=0.3)])
     fig_material_grade.update_traces(textinfo='percent+label', textposition='inside')
-    st.write(f"## Material Grade Distribution ({', '.join(selected_shovels)})", unsafe_allow_html=True, style="font-size: 20px;")
+    st.markdown(f'<h2 style="font-size: 20px;">Material Grade Distribution</h2>', unsafe_allow_html=True)
+
     st.plotly_chart(fig_material_grade)
 
 if __name__ == "__main__":
