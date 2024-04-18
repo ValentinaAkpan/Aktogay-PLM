@@ -284,7 +284,6 @@ def main():
 
     # Create a multi-select dropdown for shovel selection in the sidebar
     with st.sidebar:
-        st.write("Material Analysis")
         selected_shovels = st.multiselect("Select Shovels", ['All'] + data['Shovel'].unique().tolist(), default=['All'], key=widget_id)
 
     # Update title based on selected shovels
