@@ -113,7 +113,7 @@ def generate_markdown_explanation(actual_mean, actual_std, desired_mean, desired
     return explanation
 
 def main():
-    st.title("Potential Improvements to Operational Efficiency with ShovelMetrics™ Payload Monitoring")
+    st.title("Potential Improvements to Operational Efficiency with ShovelMetrics™ PLM")
     st.markdown("Prepared for: Aktogay Mine")
     st.markdown("Date: 2024-04-17")
     intro_placeholder = st.empty()  # Placeholder for the introductory text
@@ -225,7 +225,7 @@ def create_plot(data):
 
     layout = go.Layout(
         title='Average Truck Fill by Hour and Shift (7 AM to 7 AM)',
-        xaxis=dict(title='Hour (Adjusted for 7 AM Start)', dtick=1, tickvals=list(range(24)), ticktext=[f"{(h+7)%24}:00" for h in range(24)]),
+        xaxis=dict(title='Hour (7 AM to 7 AM)', dtick=1, tickvals=list(range(24)), ticktext=[f"{(h+7)%24}:00" for h in range(24)]),
         yaxis=dict(title='Average Truck Fill (%)')
     )
     
@@ -245,8 +245,6 @@ peak_day = data[(data['Shift'] == 'Day') & (data['Hour'].between(10, 16))]['Truc
 peak_night = data[(data['Shift'] == 'Night') & ((data['Hour'] >= 22) | (data['Hour'] <= 4))]['Truck fill (%)'].mean()
 
 st.write("During day shifts, the average truck fill percentage is {:.2f}%, indicating efficient operations during daytime hours. Night shifts show slightly lower average truck fill percentages at {:.2f}%,.".format(day_mean, night_mean))
-
-
 
 import streamlit as st
 import plotly.graph_objects as go
