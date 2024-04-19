@@ -260,7 +260,7 @@ def create_timeseries_plot(data):
         y=average_fill_by_hour_shift[average_fill_by_hour_shift['Shift'] == 'Night']['Truck fill (%)'],
         mode='lines',
         name='Night Shift',
-        line=dict(color='00B7F1')
+        line=dict(color='blue')
     )
 
     layout = go.Layout(
