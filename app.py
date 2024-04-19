@@ -332,7 +332,6 @@ def main():
     
     
     # ---------------------------- Material Analysis ---------------------------------------------------
-    st.subheader('Material Analysis')
     selected_title = f"Material Destination Distribution for {selected_shovel}"
     st.markdown(f'<h1 style="font-size: 24px;">{selected_title}</h1>', unsafe_allow_html=True)
     shovel_data = data[data['Shovel']==selected_shovel]
