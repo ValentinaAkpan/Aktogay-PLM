@@ -260,7 +260,7 @@ def create_timeseries_plot(data):
         y=average_fill_by_hour_shift[average_fill_by_hour_shift['Shift'] == 'Night']['Truck fill (%)'],
         mode='lines',
         name='Night Shift',
-        line=dict(color='blue')
+        line=dict(color='00B7F1')
     )
 
     layout = go.Layout(
@@ -283,7 +283,7 @@ def generate_markdown_explanation(actual_mean, actual_std, desired_mean, desired
 def main():
     st.title("Potential Improvements to Operational Efficiency with ShovelMetrics™ PLM")
     st.markdown("Prepared for: Aktogay Mine")
-    st.markdown("Date: 2024-04-17")
+    st.markdown("Date: 2024-04-19")
     intro_placeholder = st.empty()  # Placeholder for the introductory text
     
     data = load_data()
@@ -393,7 +393,7 @@ def main():
     monthly_performance = shovel_data.groupby(['Season', 'Month'])['Truck Fill Rate (%)'].mean().reset_index()
 
     # Assign colors to seasons
-    colors = {'Winter': '#1f77b4', 'Spring': '#ff7f0e', 'Summer': '#2ca02c', 'Fall': '#d62728'}
+    colors = {'Winter': '#1f77b4', 'Spring': '#00B7F1', 'Summer': '#2ca02c', 'Fall': '#d62728'}
 
     # Create a list of colors for each month based on its season
     monthly_performance['Color'] = monthly_performance['Season'].map(colors)
