@@ -207,6 +207,30 @@ def load_truck_fill_data(data):
         'Improvement': f"{total_improvement:.2e}"  
     }
     
+    # Format current material, desired material, and improvement in scientific notation
+    result_df['Current Material'] = result_df['Current Material'].apply(lambda x: f"{x:.2e}")
+    result_df['Desired Material'] = result_df['Desired Material'].apply(lambda x: f"{x:.2e}")
+    result_df['Improvement'] = result_df['Improvement'].apply(lambda x: f"{x:.2e}")
+    
+    result_df = pd.concat([result_df, pd.DataFrame([total_row])], ignore_index=True)
+    
+    return result_df
+
+# Sample usage:
+# df = load_truck_fill_data(your_data)
+# print(df)
+
+    
+    total_row = {
+        'Month': 'Total',
+        'Year': '',
+        'Current Truck Fill Rate': '', 
+        'Desired Truck Fill Rate': '',
+        'Current Material': f"{sum(month_data['Current Material'] for month_data in all_months_data):.2e}",
+        'Desired Material': f"{sum(month_data['Desired Material'] for month_data in all_months_data):.2e}",
+        'Improvement': f"{total_improvement:.2e}"  
+    }
+    
     # Format current material and desired material in scientific notation
     result_df['Current Material'] = result_df['Current Material'].apply(lambda x: f"{x:.2e}")
     result_df['Desired Material'] = result_df['Desired Material'].apply(lambda x: f"{x:.2e}")
