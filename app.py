@@ -110,12 +110,6 @@ def plot_distribution(shovel_fill_data, shovel, desired_mean=100, desired_std=5)
 
     return fig
 
-def generate_markdown_explanation(actual_mean, actual_std, desired_mean, desired_std, shovel):
-    explanation = f"""
-    The purpose of this analysis is to evaluate the potential improvements in operational efficiency with the implementation of ShovelMetrics™ Payload Monitoring (SM-PLM). By analyzing the truck fill distribution data, we aim to identify areas where optimizations can be made to enhance productivity and reduce operational risks. To illustrate potential improvements with SM-PLM for shovel '{shovel}', the below distributions are shown with a target fill of {desired_mean}% and a standard deviation of {desired_std}% to emulate the distribution with SM-PLM.
-    """
-    return explanation
-
 def process_loaded_data(data):
     all_data = pd.concat([df for df in data])
     all_data['Time Full'] = pd.to_datetime(all_data['Time Full'], errors="coerce").dropna()
@@ -292,5 +286,120 @@ def main():
     explanation_text = generate_markdown_explanation(actual_mean, actual_std, selected_mean, selected_std, selected_shovels)
     explanation_placeholder.markdown(explanation_text)
 
-if __name__ == "__main__":
+    data = process_loaded_data(data)
+    data = data[data['Shovel'].isin(selected_shovels)]
+    fig = create_timeseries_plot(data)
+    st.plotly_chart(fig, use_container_width=True)
+
+    day_mean = data[data['Shift'] == 'Day']['Truck fill (%)'].mean()
+    night_mean = data[data['Shift'] == 'Night']['Truck fill (%)'].mean()
+    peak_day = data[(data['Shift'] == 'Day') & (data['Hour'].between(10, 16))]['Truck fill (%)'].mean()
+    peak_night = data[(data['Shift'] == 'Night') & ((data['Hour'] >= 22) | (data['Hour'] <= 4))]['Truck fill (%)'].mean()
+
+    if day_mean > night_mean:
+        shift_message = ("During day shifts, the average truck fill percentage is {:.2f}%, "
+                     " the night shifts' average is {:.2f}%. ")
+    else:
+        shift_message = ("During night shifts, the average truck fill percentage is {:.2f}%, "
+                     " the day shifts' average of {:.2f}%. ")
+
+    st.write(shift_message.format(day_mean, night_mean))
+
+    peak_message = ("The peak average truck fill percentage during day shifts occurs between 10 AM and 4 PM with {:.2f}%, "
+                "while during night shifts, it occurs between 10 PM and 4 AM with {:.2f}%.")
+
+    st.write(peak_message.format(peak_day, peak_night))
+
+    selected_title = f"Material Destination Distribution for {selected_shovels}"
+    st.markdown(f'<h1 style="font-size: 24px;">{selected_title}</h1>', unsafe_allow_html=True)
+    st.markdown("The chart below illustrates the proportion of trucks sent to one of four locations: Crusher, Stockpiles, DLP, and Other. Kindly note that We are only analyzing truck fill for trucks that are sent to the crusher.")
+    shovel_data = data[data['Shovel'].isin(selected_shovels)]
+    data_cleaned = shovel_data.dropna()
+
+    def categorize_destination(destination):
+        if destination.upper().startswith('CRUSHER'):
+            return 'Crusher'
+        elif destination.startswith('STK'):
+            return 'STK'
+        elif destination.startswith('DLP'):
+            return 'DLP'
+        else:
+            return 'Other'
+
+    data_cleaned['Destination Category'] = data_cleaned['Assigned Dump'].apply(categorize_destination)
+
+    destination_counts = data_cleaned['Destination Category'].value_counts()
+
+    other_destinations = data_cleaned[data_cleaned['Destination Category'] == 'Other']['Assigned Dump'].unique()
+
+    st.markdown("The 'Other' category comprises the following destinations:")
+    st.write(", ".join(other_destinations))
+
+    st.markdown(f'<h2 style="font-size: 20px;">Material Destination Distribution</h2>', unsafe_allow_html=True)
+    fig_destination = go.Figure(data=[go.Pie(labels=destination_counts.index, values=destination_counts.values, hole=0.3)])
+    fig_destination.update_traces(textinfo='percent+label', textposition='inside')
+    st.plotly_chart(fig_destination)
+
+    material_data = data_cleaned['Material'].value_counts()
+    fig_material_grade = go.Figure(data=[go.Pie(labels=material_data.index, values=material_data.values, hole=0.3)])
+    fig_material_grade.update_traces(textinfo='percent+label', textposition='inside')
+    st.markdown(f'<h2 style="font-size: 20px;">Material Grade Distribution</h2>', unsafe_allow_html=True)
+    st.plotly_chart(fig_material_grade)
+
+    shovel_data = data[(data['Shovel'].isin(selected_shovels)) & (data['Tonnage'] != 0) & (data['Truck Factor'] != 0)].dropna(subset=['Truck Factor', 'Tonnage'])
+    shovel_data['Truck Fill Rate (%)'] = (shovel_data['Tonnage'] / shovel_data['Truck Factor']) * 100
+
+    monthly_performance = shovel_data.groupby(['Season', 'Month'])['Truck Fill Rate (%)'].mean().reset_index()
+
+    colors = {'Winter': '#1f77b4', 'Spring': '#ff7f0e', 'Summer': '#2ca02c', 'Fall': '#d62728'}
+
+    monthly_performance['Color'] = monthly_performance['Season'].map(colors)
+
+    month_names = {1: 'Jan', 2: 'Feb', 3: 'Mar', 4: 'Apr', 5: 'May', 6: 'Jun', 7: 'Jul', 8: 'Aug', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dec'}
+
+    fig_monthly = go.Figure()
+    for season, color in colors.items():
+        season_data = monthly_performance[monthly_performance['Season'] == season]
+        fig_monthly.add_trace(go.Bar(x=season_data['Month'].map(month_names), y=season_data['Truck Fill Rate (%)'],
+                                    name=f'{season} Average', marker_color=color))
+        fig_monthly.add_trace(go.Scatter(x=season_data['Month'].map(month_names), y=[season_data['Truck Fill Rate (%)'].mean()] * len(season_data),
+                                        mode='lines+markers', name=f'{season} Average', line=dict(color=color, dash='dash', width=2),
+                                        marker=dict(color=color, size=8)))
+
+    fig_monthly.update_layout(xaxis_title='Month', yaxis_title='Average Truck Fill Rate (%)',
+                            template='plotly_white', yaxis=dict(range=[80, 105]),
+                            title=dict(text=f'Monthly Truck Fill Rate Trends for {selected_shovels}', font=dict(size=18, color='black', family="Arial")))
+    st.plotly_chart(fig_monthly, use_container_width=True)
+
+       # ---------------------------- Tabular View ---------------------------------------------------
+    # Load your truck fill rate data
+    results_df = load_truck_fill_data(data, selected_shovels)
+
+    # Sort the DataFrame by year and month
+    results_df['Month'] = pd.Categorical(results_df['Month'], categories=[
+        'January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December', 'Total'
+    ], ordered=True)
+    results_df = results_df.sort_values(by=['Year', 'Month'])
+    results_df = results_df.reset_index(drop=True)
+
+    shovel_text = ", ".join(selected_shovels) if selected_shovels else "All Shovels"
+    st.markdown(f"<h4><b>Current and Desired Truck Fill Rates for {shovel_text}</b></h4>", unsafe_allow_html=True)
+
+    # Add CSS styling to the header of the table to change the background color
+    header_html = """
+    <style>
+    th {
+    background-color: #00B7F1; 
+    }
+
+    th div {
+    color: white;
+    }
+    </style>
+    """
+    st.markdown(header_html, unsafe_allow_html=True)
+    st.table(results_df)
+    
+if __name__ == '__main__':
     main()
