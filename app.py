@@ -271,22 +271,25 @@ def main():
 
     # Add a global filter for material type
     all_materials = list(set([value for df in data for value in df['Material'].unique() if 'Material' in df.columns]))
-    selected_materials = st.sidebar.multiselect("Select Material Type", all_materials, default=['HG'])
+    selected_materials = st.sidebar.multiselect("Select Material Type", all_materials)
+
+    # If no material is selected, use all materials
+    if not selected_materials:
+        selected_materials = all_materials
 
     # Filter data based on selected material type
-    data = [df[df['Material'].isin(selected_materials)] for df in data]
+    data = [df[df['Material'].isin(selected_materials)] for df in data if 'Material' in df.columns]
 
     all_shovels = list(set([value for df in data for value in df['Shovel'].unique() if 'Shovel' in df.columns]))
     all_shovels.append('All')
-
 
     selected_shovels = st.sidebar.multiselect("Select Shovel", all_shovels, default=['All'])
 
     if 'All' in selected_shovels or len(selected_shovels) == 0:
         selected_shovels = [shovel for shovel in all_shovels if shovel != 'All']
 
-    if len(selected_shovels)==0:
-        selected_shovel = ['All']
+    if len(selected_shovels) == 0:
+        selected_shovels = ['All']
 
     if 'All' in selected_shovels:
         selected_shovels = all_shovels
@@ -300,6 +303,9 @@ def main():
     shovel_fill_data = load_shovel_fill_data(data, selected_shovels)
     fig = plot_distribution(shovel_fill_data, selected_shovels, selected_mean, selected_std)
     st.plotly_chart(fig, use_container_width=True)
+
+
+
 
     actual_mean = np.mean(shovel_fill_data) if shovel_fill_data else 0
     actual_std = np.std(shovel_fill_data) if shovel_fill_data else 0
