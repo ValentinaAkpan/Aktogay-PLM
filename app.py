@@ -119,6 +119,7 @@ def process_loaded_data(data):
     all_data['Month'] = all_data['Time Full'].dt.month
     all_data['Season'] = all_data['Month'].apply(month_to_season)
     all_data['Year'] = all_data['Time Full'].dt.year
+    all_data['Adjusted Hour'] = (all_data['Hour'] + 17) % 24  # Adjust the hour for plotting
     all_data = all_data.dropna(subset=['Time Full'])
     return all_data
 
@@ -133,7 +134,6 @@ def month_to_season(month):
         return 'Fall'
 
 def create_timeseries_plot(data):
-    data = adjust_hours_for_plot(data)
     average_fill_by_hour_shift = data.groupby(['Adjusted Hour', 'Shift'])['Truck fill (%)'].mean().reset_index()
 
     trace_day = go.Scatter(
@@ -162,10 +162,24 @@ def create_timeseries_plot(data):
 
     return fig
 
+
+
 def adjust_hours_for_plot(df):
-    df['Adjusted Hour'] = df['Hour'].apply(lambda x: (x + 17) % 24)
-    df.sort_values(by=['Adjusted Hour'], inplace=True)
+    # Convert 'Time Full' to datetime, if not already
+    df['Time Full'] = pd.to_datetime(df['Time Full'], errors="coerce")
+    
+    # Shift 'Time Full' by -7 hours so the day starts at 7 AM
+    df['Adjusted Time Full'] = df['Time Full'] - pd.Timedelta(hours=7)
+
+    # Extract the adjusted hour and day
+    df['Adjusted Hour'] = df['Adjusted Time Full'].dt.hour
+    df['Adjusted Day'] = df['Adjusted Time Full'].dt.date
+
+    # Now sort by the adjusted time for proper plotting and analysis
+    df.sort_values(by=['Adjusted Time Full'], inplace=True)
+    
     return df
+
 
 def calculate_material_increase(current_mean, current_std, desired_mean=100, desired_std=5):
     z_current = (desired_mean - current_mean) / current_std
@@ -247,8 +261,6 @@ from scipy.stats import norm
 import plotly.graph_objects as go
 import streamlit as st
 
-# Define your functions here...
-
 def main():
     st.title("Potential Improvements to Operational Efficiency with ShovelMetrics™ PLM")
     st.markdown("Prepared for: Aktogay Mine")
@@ -257,8 +269,16 @@ def main():
 
     data = load_data()
 
+    # Add a global filter for material type
+    all_materials = list(set([value for df in data for value in df['Material'].unique() if 'Material' in df.columns]))
+    selected_materials = st.sidebar.multiselect("Select Material Type", all_materials, default=['HG'])
+
+    # Filter data based on selected material type
+    data = [df[df['Material'].isin(selected_materials)] for df in data]
+
     all_shovels = list(set([value for df in data for value in df['Shovel'].unique() if 'Shovel' in df.columns]))
     all_shovels.append('All')
+
 
     selected_shovels = st.sidebar.multiselect("Select Shovel", all_shovels, default=['All'])
 
