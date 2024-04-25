@@ -185,9 +185,15 @@ def calculate_material_increase(current_mean, current_std, desired_mean=100, des
     z_current = (desired_mean - current_mean) / current_std
     z_desired = 0
 
+    if desired_mean < 100:
+        z_current = -z_current
+        z_desired = 0
+
     potential_increase = norm.cdf(z_current) - norm.cdf(z_desired)
 
     return potential_increase * 100
+
+
 
 def load_truck_fill_data(data, shovels, selected_mean, selected_std):
     print("Selected Standard Deviation:", selected_std)
@@ -252,16 +258,11 @@ def load_truck_fill_data(data, shovels, selected_mean, selected_std):
     return result_df
 
 
-
-
-
 def generate_markdown_explanation(actual_mean, actual_std, desired_mean, desired_std, shovel):
     explanation = f"""
     The purpose of this analysis is to evaluate the potential improvements in operational efficiency with the implementation of ShovelMetrics™ Payload Monitoring (SM-PLM). By analyzing the truck fill distribution data, we aim to identify areas where optimizations can be made to enhance productivity and reduce operational risks. To illustrate potential improvements with SM-PLM for shovel '{shovel}', the below distributions are shown with a target fill of {desired_mean}% and a standard deviation of {desired_std}% to emulate the distribution with SM-PLM.
     """
     return explanation
-
-
 
 
 def main():
