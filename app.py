@@ -262,11 +262,7 @@ def generate_markdown_explanation(actual_mean, actual_std, desired_mean, desired
     return explanation
 
 
-import pandas as pd
-import numpy as np
-from scipy.stats import norm
-import plotly.graph_objects as go
-import streamlit as st
+
 
 def main():
     st.title("Potential Improvements to Operational Efficiency with ShovelMetrics™ PLM")
@@ -323,22 +319,45 @@ def main():
 
     day_mean = data[data['Shift'] == 'Day']['Truck fill (%)'].mean()
     night_mean = data[data['Shift'] == 'Night']['Truck fill (%)'].mean()
-    peak_day = data[(data['Shift'] == 'Day') & (data['Hour'].between(10, 16))]['Truck fill (%)'].mean()
-    peak_night = data[(data['Shift'] == 'Night') & ((data['Hour'] >= 22) | (data['Hour'] <= 4))]['Truck fill (%)'].mean()
 
-    if day_mean > night_mean:
-        shift_message = ("During day shifts, the average truck fill percentage is {:.2f}%, "
-                     " the night shifts' average is {:.2f}%. ")
-    else:
-        shift_message = ("During night shifts, the average truck fill percentage is {:.2f}%, "
-                     " the day shifts' average of {:.2f}%. ")
+    # Calculate the peak periods for average truck fill during day and night shifts
+    peak_day_start = None
+    peak_day_end = None
+    peak_night_start = None
+    peak_night_end = None
 
-    st.write(shift_message.format(day_mean, night_mean))
+    # Group data by shift and hour, then calculate the average truck fill
+    shift_hourly_average = data.groupby(['Shift', 'Hour'])['Truck fill (%)'].mean().reset_index()
 
-    peak_message = ("The peak average truck fill percentage during day shifts occurs between 10 AM and 4 PM with {:.2f}%, "
-                "while during night shifts, it occurs between 10 PM and 4 AM with {:.2f}%.")
+    # Find the peak periods for day and night shifts
+    day_shift_data = shift_hourly_average[shift_hourly_average['Shift'] == 'Day']
+    night_shift_data = shift_hourly_average[shift_hourly_average['Shift'] == 'Night']
 
-    st.write(peak_message.format(peak_day, peak_night))
+    peak_day = day_shift_data.loc[day_shift_data['Truck fill (%)'].idxmax()]
+    peak_night = night_shift_data.loc[night_shift_data['Truck fill (%)'].idxmax()]
+
+    peak_day_start = peak_day['Hour']
+    peak_day_end = (peak_day_start + 6) % 24  # Assuming the peak period is 6 hours long
+    peak_night_start = peak_night['Hour']
+    peak_night_end = (peak_night_start + 6) % 24  # Assuming the peak period is 6 hours long
+
+    # Output the peak periods
+    peak_message = ("The peak average truck fill percentage during day shifts occurs between {} {} and {} {} with {:.2f}%, "
+                    "while during night shifts, it occurs between {} {} and {} {} with {:.2f}%.")
+
+    peak_day_start_period = "AM" if peak_day_start < 12 else "PM"
+    peak_day_end_period = "AM" if peak_day_end < 12 else "PM"
+    peak_night_start_period = "AM" if peak_night_start < 12 else "PM"
+    peak_night_end_period = "AM" if peak_night_end < 12 else "PM"
+
+    st.write(peak_message.format(
+        peak_day_start % 12, peak_day_start_period,
+        peak_day_end % 12, peak_day_end_period,
+        peak_day['Truck fill (%)'],
+        peak_night_start % 12, peak_night_start_period,
+        peak_night_end % 12, peak_night_end_period,
+        peak_night['Truck fill (%)']
+    ))
 
     selected_title = f"Material Destination Distribution for {selected_shovels}"
     st.markdown(f'<h1 style="font-size: 24px;">{selected_title}</h1>', unsafe_allow_html=True)
@@ -435,3 +454,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+
