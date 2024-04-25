@@ -180,18 +180,22 @@ def adjust_hours_for_plot(df):
     
     return df
 
-
-def calculate_material_increase(current_mean, current_std, desired_mean=100, desired_std=5):
+def calculate_material_increase(current_mean, current_std, desired_mean, desired_std):
+    # Calculate the z-score for the current and desired means
     z_current = (desired_mean - current_mean) / current_std
     z_desired = 0
-
-    if desired_mean < 100:
+    
+    # Adjust z-score if desired_mean is lower than current_mean
+    if desired_mean < current_mean:
         z_current = -z_current
         z_desired = 0
 
+    # Calculate potential increase based on cumulative distribution function
     potential_increase = norm.cdf(z_current) - norm.cdf(z_desired)
 
+    # Return potential increase as a percentage
     return potential_increase * 100
+
 
 
 def load_truck_fill_data(data, shovels, selected_mean, selected_std):
