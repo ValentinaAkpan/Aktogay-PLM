@@ -384,7 +384,7 @@ def main():
 
     selected_title = f"Material Destination Distribution for {selected_shovels}"
     st.markdown(f'<h1 style="font-size: 24px;">{selected_title}</h1>', unsafe_allow_html=True)
-    st.markdown("The chart below illustrates the proportion of trucks sent to one of four locations: Crusher, Stockpiles, DLP, and Other. Kindly note that We are only analyzing truck fill for trucks that are sent to the crusher.")
+    st.markdown("The chart below illustrates the proportion of trucks sent to one of four locations: Crusher, Stockpiles, DLP, and Other. Kindly note that we are only analyzing truck fill for trucks that are sent to the crusher.")
     shovel_data = data[data['Shovel'].isin(selected_shovels)]
     data_cleaned = shovel_data.dropna()
 
