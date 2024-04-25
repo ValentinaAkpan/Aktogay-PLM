@@ -137,6 +137,8 @@ def month_to_season(month):
     elif month in [9, 10, 11]:
         return 'Fall'
 
+
+
 def create_timeseries_plot(data):
     average_fill_by_hour_shift = data.groupby(['Adjusted Hour', 'Shift'])['Truck fill (%)'].mean().reset_index()
 
@@ -331,56 +333,32 @@ def main():
     fig = create_timeseries_plot(data)
     st.plotly_chart(fig, use_container_width=True)
 
-    # The rest of your code remains unchanged...
 
     day_mean = data[data['Shift'] == 'Day']['Truck fill (%)'].mean()
     night_mean = data[data['Shift'] == 'Night']['Truck fill (%)'].mean()
 
     # Calculate the peak periods for average truck fill during day and night shifts
-    peak_day_start = None
-    peak_day_end = None
-    peak_night_start = None
-    peak_night_end = None
-
-    # Group data by shift and hour, then calculate the average truck fill
+    # Calculate peak periods
     shift_hourly_average = data.groupby(['Shift', 'Hour'])['Truck fill (%)'].mean().reset_index()
+    peak_day = shift_hourly_average[(shift_hourly_average['Shift'] == 'Day')].nlargest(1, 'Truck fill (%)')
+    peak_night = shift_hourly_average[(shift_hourly_average['Shift'] == 'Night')].nlargest(1, 'Truck fill (%)')
+    
+    def format_hour(hour):
+        return f"{hour%12 if hour != 12 else 12} {'AM' if hour < 12 or hour == 24 else 'PM'}"
+    
+    if not peak_day.empty and not peak_night.empty:
+        peak_day_hour = peak_day['Hour'].values[0]
+        peak_night_hour = peak_night['Hour'].values[0]
+        peak_day_fill = peak_day['Truck fill (%)'].values[0]
+        peak_night_fill = peak_night['Truck fill (%)'].values[0]
 
-    # Find the peak periods for day and night shifts
-    day_shift_data = shift_hourly_average[shift_hourly_average['Shift'] == 'Day']
-    night_shift_data = shift_hourly_average[shift_hourly_average['Shift'] == 'Night']
+        # Create a message string using the formatted hours and peak fill percentages
+        peak_message = (f"The peak average truck fill percentage during night shifts occurs between {format_hour(peak_night_hour)} and {format_hour((peak_night_hour + 1) % 24)} with {peak_night_fill:.2f}%, "
+                        f"while during day shifts, it occurs between {format_hour(peak_day_hour)} and {format_hour((peak_day_hour + 1) % 24)} with {peak_day_fill:.2f}%.")
+        
+        st.write(peak_message)
 
-    try:
-        peak_day = day_shift_data.loc[day_shift_data['Truck fill (%)'].idxmax()]
-        peak_day_start = peak_day['Hour']
-        peak_day_end = (peak_day_start + 6) % 24  # Assuming the peak period is 6 hours long
-    except ValueError:
-        pass
-
-    try:
-        peak_night = night_shift_data.loc[night_shift_data['Truck fill (%)'].idxmax()]
-        peak_night_start = peak_night['Hour']
-        peak_night_end = (peak_night_start + 6) % 24  # Assuming the peak period is 6 hours long
-    except ValueError:
-        pass
-
-    # Output the peak periods
-    if peak_day_start is not None and peak_day_end is not None and peak_night_start is not None and peak_night_end is not None:
-        peak_message = ("The peak average truck fill percentage during day shifts occurs between {} {} and {} {} with {:.2f}%, "
-                        "while during night shifts, it occurs between {} {} and {} {} with {:.2f}%.")
-
-        peak_day_start_period = "AM" if peak_day_start < 12 else "PM"
-        peak_day_end_period = "AM" if peak_day_end < 12 else "PM"
-        peak_night_start_period = "AM" if peak_night_start < 12 else "PM"
-        peak_night_end_period = "AM" if peak_night_end < 12 else "PM"
-
-        st.write(peak_message.format(
-            peak_day_start % 12, peak_day_start_period,
-            peak_day_end % 12, peak_day_end_period,
-            peak_day['Truck fill (%)'],
-            peak_night_start % 12, peak_night_start_period,
-            peak_night_end % 12, peak_night_end_period,
-            peak_night['Truck fill (%)']
-        ))
+  
 
     selected_title = f"Material Destination Distribution for {selected_shovels}"
     st.markdown(f'<h1 style="font-size: 24px;">{selected_title}</h1>', unsafe_allow_html=True)
