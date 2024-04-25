@@ -194,68 +194,74 @@ def calculate_material_increase(current_mean, current_std, desired_mean=100, des
     return potential_increase * 100
 
 
-
 def load_truck_fill_data(data, shovels, selected_mean, selected_std):
-    print("Selected Standard Deviation:", selected_std)
+    # Filter data for selected shovels
     data = data[data['Shovel'].isin(shovels)]
     total_improvement = 0
 
     month_aggregated_data = {}
 
+    # Group data by month-year
     data['Month'] = data['Time Full'].dt.strftime('%B')
     data['Month-Year'] = data['Month'].astype(str) + ' ' + data['Year'].astype(str)
-    data['Year'] = data['Year'].astype(int)
     data = data.sort_values(by='Year')
 
+    # Drop rows with missing values in 'Time Full' column
+    data = data.dropna(subset=['Time Full'])
+
+    # Iterate over unique month-year combinations
     for month in data['Month-Year'].unique():
         month_data = data[data['Month-Year'] == month]
+        
+        # Calculate current truck fill rate and material moved
         current_truck_fill = (month_data['Tonnage'] / month_data['Truck Factor']) * 100
-        print("Current Standard Deviation:", current_truck_fill.std())
         current_material_moved = month_data['Tonnage'].sum()
+        
+        # Calculate desired material moved using calculate_material_increase() function
         desired_material_moved = current_material_moved * (1 + calculate_material_increase(current_truck_fill.mean(), current_truck_fill.std(), selected_mean, selected_std) / 100)
+        
+        # Calculate improvement as the difference between desired and current material moved
         improvement = desired_material_moved - current_material_moved
         total_improvement += improvement
 
+        # Aggregate data by month-year
         month_year_key = (month_data['Month'].iloc[0], month_data['Year'].iloc[0])
 
         if month_year_key in month_aggregated_data:
-            month_aggregated_data[month_year_key]['Current Material'] += current_material_moved
-            month_aggregated_data[month_year_key]['Desired Material'] += desired_material_moved
-            month_aggregated_data[month_year_key]['Improvement'] += improvement
+            month_aggregated_data[month_year_key]['Current Material (tonnes)'] += current_material_moved
+            month_aggregated_data[month_year_key]['Desired Material (tonnes)'] += desired_material_moved
+            month_aggregated_data[month_year_key]['Improvement (tonnes)'] += improvement
         else:
             month_aggregated_data[month_year_key] = {
                 'Month': month_data['Month'].iloc[0],
                 'Year': month_data['Year'].iloc[0],
                 'Current Truck Fill Rate': current_truck_fill.mean(),
                 'Desired Truck Fill Rate': selected_mean,
-                'Current Material': current_material_moved,
-                'Desired Material': desired_material_moved,
-                'Improvement': improvement
+                'Current Material (tonnes)': current_material_moved,
+                'Desired Material (tonnes)': desired_material_moved,
+                'Improvement (tonnes)': improvement
             }
 
+    # Create DataFrame from aggregated data
     all_months_data = list(month_aggregated_data.values())
-
-    # Calculate the total current truck fill rate as an average of monthly averages
-    total_current_truck_fill_rate = np.mean([data['Current Truck Fill Rate'] for data in all_months_data])
-
     total_row = {
         'Month': 'Total',
         'Year': '',
-        'Current Truck Fill Rate': total_current_truck_fill_rate,
+        'Current Truck Fill Rate': np.mean([data['Current Truck Fill Rate'] for data in all_months_data]),
         'Desired Truck Fill Rate': selected_mean,
-        'Current Material': sum(data['Current Material'] for data in all_months_data),
-        'Desired Material': sum(data['Desired Material'] for data in all_months_data),
-        'Improvement': total_improvement
+        'Current Material (tonnes)': sum(data['Current Material (tonnes)'] for data in all_months_data),
+        'Desired Material (tonnes)': sum(data['Desired Material (tonnes)'] for data in all_months_data),
+        'Improvement (tonnes)': total_improvement
     }
-
     result_df = pd.DataFrame(all_months_data + [total_row])
 
-    # Format numbers for display
-    columns_to_format = ['Current Material', 'Desired Material', 'Improvement', 'Current Truck Fill Rate', 'Desired Truck Fill Rate']
-    for col in columns_to_format:
-        result_df[col] = result_df[col].map(lambda x: f"{x:,.2f}" if isinstance(x, float) else f"{x:,}")
+    # Round values to the nearest tonne and convert to integers
+    result_df[['Current Material (tonnes)', 'Desired Material (tonnes)', 'Improvement (tonnes)']] = \
+        result_df[['Current Material (tonnes)', 'Desired Material (tonnes)', 'Improvement (tonnes)']].round().astype(int)
 
     return result_df
+
+
 
 
 def generate_markdown_explanation(actual_mean, actual_std, desired_mean, desired_std, shovel):
@@ -455,5 +461,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-
