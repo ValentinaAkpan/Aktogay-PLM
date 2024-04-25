@@ -412,8 +412,6 @@ def main():
 
     other_destinations = data_cleaned[data_cleaned['Destination Category'] == 'Other']['Assigned Dump'].unique()
 
-    st.markdown("The 'Other' category comprises the following destinations:")
-    st.write(", ".join(other_destinations))
 
     st.markdown(f'<h2 style="font-size: 20px;">Material Destination Distribution</h2>', unsafe_allow_html=True)
     fig_destination = go.Figure(data=[go.Pie(labels=destination_counts.index, values=destination_counts.values, hole=0.3)])
