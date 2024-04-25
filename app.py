@@ -120,15 +120,13 @@ def process_loaded_data(data):
     all_data['Season'] = all_data['Month'].apply(month_to_season)
     all_data['Year'] = all_data['Time Full'].dt.year
     all_data['Adjusted Hour'] = (all_data['Hour'] + 17) % 24  # Adjust the hour for plotting
-    all_data = all_data.dropna(subset=['Time Full'])
-
-    # Drop rows with NaN values in the "Material" column
-    all_data = all_data.dropna(subset=['Material'])
+    all_data = all_data.dropna(subset=['Time Full', 'Material', 'Truck fill (%)'])
 
     # Drop columns with all NaN values
     all_data = all_data.dropna(axis=1, how='all')
 
     return all_data
+
 
 
 def month_to_season(month):
@@ -285,7 +283,6 @@ def generate_markdown_explanation(actual_mean, actual_std, desired_mean, desired
     """
     return explanation
 
-
 def main():
     st.title("Potential Improvements to Operational Efficiency with ShovelMetrics™ PLM")
     st.markdown("Prepared for: Aktogay Mine")
@@ -341,7 +338,6 @@ def main():
 
     # The rest of your code remains unchanged...
 
-
     day_mean = data[data['Shift'] == 'Day']['Truck fill (%)'].mean()
     night_mean = data[data['Shift'] == 'Night']['Truck fill (%)'].mean()
 
@@ -358,31 +354,38 @@ def main():
     day_shift_data = shift_hourly_average[shift_hourly_average['Shift'] == 'Day']
     night_shift_data = shift_hourly_average[shift_hourly_average['Shift'] == 'Night']
 
-    peak_day = day_shift_data.loc[day_shift_data['Truck fill (%)'].idxmax()]
-    peak_night = night_shift_data.loc[night_shift_data['Truck fill (%)'].idxmax()]
+    try:
+        peak_day = day_shift_data.loc[day_shift_data['Truck fill (%)'].idxmax()]
+        peak_day_start = peak_day['Hour']
+        peak_day_end = (peak_day_start + 6) % 24  # Assuming the peak period is 6 hours long
+    except ValueError:
+        pass
 
-    peak_day_start = peak_day['Hour']
-    peak_day_end = (peak_day_start + 6) % 24  # Assuming the peak period is 6 hours long
-    peak_night_start = peak_night['Hour']
-    peak_night_end = (peak_night_start + 6) % 24  # Assuming the peak period is 6 hours long
+    try:
+        peak_night = night_shift_data.loc[night_shift_data['Truck fill (%)'].idxmax()]
+        peak_night_start = peak_night['Hour']
+        peak_night_end = (peak_night_start + 6) % 24  # Assuming the peak period is 6 hours long
+    except ValueError:
+        pass
 
     # Output the peak periods
-    peak_message = ("The peak average truck fill percentage during day shifts occurs between {} {} and {} {} with {:.2f}%, "
-                    "while during night shifts, it occurs between {} {} and {} {} with {:.2f}%.")
+    if peak_day_start is not None and peak_day_end is not None and peak_night_start is not None and peak_night_end is not None:
+        peak_message = ("The peak average truck fill percentage during day shifts occurs between {} {} and {} {} with {:.2f}%, "
+                        "while during night shifts, it occurs between {} {} and {} {} with {:.2f}%.")
 
-    peak_day_start_period = "AM" if peak_day_start < 12 else "PM"
-    peak_day_end_period = "AM" if peak_day_end < 12 else "PM"
-    peak_night_start_period = "AM" if peak_night_start < 12 else "PM"
-    peak_night_end_period = "AM" if peak_night_end < 12 else "PM"
+        peak_day_start_period = "AM" if peak_day_start < 12 else "PM"
+        peak_day_end_period = "AM" if peak_day_end < 12 else "PM"
+        peak_night_start_period = "AM" if peak_night_start < 12 else "PM"
+        peak_night_end_period = "AM" if peak_night_end < 12 else "PM"
 
-    st.write(peak_message.format(
-        peak_day_start % 12, peak_day_start_period,
-        peak_day_end % 12, peak_day_end_period,
-        peak_day['Truck fill (%)'],
-        peak_night_start % 12, peak_night_start_period,
-        peak_night_end % 12, peak_night_end_period,
-        peak_night['Truck fill (%)']
-    ))
+        st.write(peak_message.format(
+            peak_day_start % 12, peak_day_start_period,
+            peak_day_end % 12, peak_day_end_period,
+            peak_day['Truck fill (%)'],
+            peak_night_start % 12, peak_night_start_period,
+            peak_night_end % 12, peak_night_end_period,
+            peak_night['Truck fill (%)']
+        ))
 
     selected_title = f"Material Destination Distribution for {selected_shovels}"
     st.markdown(f'<h1 style="font-size: 24px;">{selected_title}</h1>', unsafe_allow_html=True)
@@ -399,6 +402,9 @@ def main():
             return 'DLP'
         else:
             return 'Other'
+
+
+
 
     data_cleaned['Destination Category'] = data_cleaned['Assigned Dump'].apply(categorize_destination)
 
