@@ -128,7 +128,7 @@ def process_loaded_data(data):
     return all_data
 
 def month_to_season(month):
-    if month in [1, 12, 2]:
+    if month in [12, 1, 2]:
         return 'Winter'
     elif month in [3, 4, 5]:
         return 'Spring'
@@ -403,7 +403,7 @@ def main():
 
     monthly_performance['Color'] = monthly_performance['Season'].map(colors)
 
-    month_names = {1: 'Jan', 2: 'Feb', 3: 'Mar', 4: 'Apr', 5: 'May', 6: 'Jun', 7: 'Jul', 8: 'Aug', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dec'}
+    month_names = {12: 'Dec', 1: 'Jan', 2: 'Feb', 3: 'Mar', 4: 'Apr', 5: 'May', 6: 'Jun', 7: 'Jul', 8: 'Aug', 9: 'Sep', 10: 'Oct', 11: 'Nov'}
 
     fig_monthly = go.Figure()
     for season, color in colors.items():
@@ -416,7 +416,8 @@ def main():
 
     fig_monthly.update_layout(xaxis_title='Month', yaxis_title='Average Truck Fill Rate (%)',
                             template='plotly_white', yaxis=dict(range=[80, 105]),
-                            title=dict(text=f'Monthly Truck Fill Rate Trends for {selected_shovels}', font=dict(size=18, color='black', family="Arial")))
+                            title=dict(text=f'Monthly Truck Fill Rate Trends for {selected_shovels}', font=dict(size=18, color='black', family="Arial")),
+                            xaxis=dict(type='category', categoryorder='array', categoryarray=list(month_names.values())))
     st.plotly_chart(fig_monthly, use_container_width=True)
 
        # ---------------------------- Tabular View ---------------------------------------------------
