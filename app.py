@@ -127,8 +127,6 @@ def process_loaded_data(data):
 
     return all_data
 
-
-
 def month_to_season(month):
     if month in [12, 1, 2]:
         return 'Winter'
@@ -274,9 +272,6 @@ def load_truck_fill_data(data, shovels, selected_mean, selected_std):
 
     return result_df
 
-
-
-
 def generate_markdown_explanation(actual_mean, actual_std, desired_mean, desired_std, shovel):
     explanation = f"""
     The purpose of this analysis is to evaluate the potential improvements in operational efficiency with the implementation of ShovelMetrics™ Payload Monitoring (SM-PLM). By analyzing the truck fill distribution data, we aim to identify areas where optimizations can be made to enhance productivity and reduce operational risks. To illustrate potential improvements with SM-PLM for shovel '{shovel}', the below distributions are shown with a target fill of {desired_mean}% and a standard deviation of {desired_std}% to emulate the distribution with SM-PLM.
@@ -402,9 +397,6 @@ def main():
             return 'DLP'
         else:
             return 'Other'
-
-
-
 
     data_cleaned['Destination Category'] = data_cleaned['Assigned Dump'].apply(categorize_destination)
 
