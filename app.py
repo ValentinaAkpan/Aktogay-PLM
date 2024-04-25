@@ -128,7 +128,7 @@ def process_loaded_data(data):
     return all_data
 
 def month_to_season(month):
-    if month in [1, 2, 12]:
+    if month in [12, 1, 2]:
         return 'Winter'
     elif month in [3, 4, 5]:
         return 'Spring'
