@@ -267,7 +267,7 @@ def generate_markdown_explanation(actual_mean, actual_std, desired_mean, desired
 def main():
     st.title("Potential Improvements to Operational Efficiency with ShovelMetrics™ PLM")
     st.markdown("Prepared for: Aktogay Mine")
-    st.markdown("Date: 2024-04-22")
+    st.markdown("Date: 2024-04-25")
     intro_placeholder = st.empty()
 
     data = load_data()
