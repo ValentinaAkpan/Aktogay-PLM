@@ -189,24 +189,24 @@ def calculate_material_increase(current_mean, current_std, desired_mean=100, des
 
     return potential_increase * 100
 
-def load_truck_fill_data(data, shovels):
+def load_truck_fill_data(data, shovels, selected_mean, selected_std):
+    print("Selected Standard Deviation:", selected_std)
     data = data[data['Shovel'].isin(shovels)]
-    all_months_data = []
     total_improvement = 0
 
     month_aggregated_data = {}
 
     data['Month'] = data['Time Full'].dt.strftime('%B')
-
     data['Month-Year'] = data['Month'].astype(str) + ' ' + data['Year'].astype(str)
     data['Year'] = data['Year'].astype(int)
     data = data.sort_values(by='Year')
+
     for month in data['Month-Year'].unique():
         month_data = data[data['Month-Year'] == month]
-
         current_truck_fill = (month_data['Tonnage'] / month_data['Truck Factor']) * 100
+        print("Current Standard Deviation:", current_truck_fill.std())
         current_material_moved = month_data['Tonnage'].sum()
-        desired_material_moved = current_material_moved * (1 + calculate_material_increase(current_truck_fill.mean(), 100, 100, 5) / 100)
+        desired_material_moved = current_material_moved * (1 + calculate_material_increase(current_truck_fill.mean(), current_truck_fill.std(), selected_mean, selected_std) / 100)
         improvement = desired_material_moved - current_material_moved
         total_improvement += improvement
 
@@ -220,8 +220,8 @@ def load_truck_fill_data(data, shovels):
             month_aggregated_data[month_year_key] = {
                 'Month': month_data['Month'].iloc[0],
                 'Year': month_data['Year'].iloc[0],
-                'Current Truck Fill Rate': f"{current_truck_fill.mean():.2f}%",
-                'Desired Truck Fill Rate': "100%",
+                'Current Truck Fill Rate': current_truck_fill.mean(),
+                'Desired Truck Fill Rate': selected_mean,
                 'Current Material': current_material_moved,
                 'Desired Material': desired_material_moved,
                 'Improvement': improvement
@@ -229,24 +229,31 @@ def load_truck_fill_data(data, shovels):
 
     all_months_data = list(month_aggregated_data.values())
 
+    # Calculate the total current truck fill rate as an average of monthly averages
+    total_current_truck_fill_rate = np.mean([data['Current Truck Fill Rate'] for data in all_months_data])
+
     total_row = {
         'Month': 'Total',
         'Year': '',
-        'Current Truck Fill Rate': '',
-        'Desired Truck Fill Rate': '',
-        'Current Material': f"{sum(month_data['Current Material'] for month_data in all_months_data):.2e}",
-        'Desired Material': f"{sum(month_data['Desired Material'] for month_data in all_months_data):.2e}",
-        'Improvement': f"{improvement:+.2e}"  # Using '+.2e' to ensure the sign is included in the scientific notation
-
+        'Current Truck Fill Rate': total_current_truck_fill_rate,
+        'Desired Truck Fill Rate': selected_mean,
+        'Current Material': sum(data['Current Material'] for data in all_months_data),
+        'Desired Material': sum(data['Desired Material'] for data in all_months_data),
+        'Improvement': total_improvement
     }
-    result_df = pd.DataFrame(all_months_data)
 
-    result_df['Current Material'] = result_df['Current Material'].apply(lambda x: f'{float(x):.2e}')
-    result_df['Desired Material'] = result_df['Desired Material'].apply(lambda x: f'{float(x):.2e}')
-    result_df['Improvement'] = result_df['Improvement'].apply(lambda x: f'{float(x):.2e}')
-    result_df = pd.concat([result_df, pd.DataFrame([total_row])], ignore_index=True)
+    result_df = pd.DataFrame(all_months_data + [total_row])
+
+    # Format numbers for display
+    columns_to_format = ['Current Material', 'Desired Material', 'Improvement', 'Current Truck Fill Rate', 'Desired Truck Fill Rate']
+    for col in columns_to_format:
+        result_df[col] = result_df[col].map(lambda x: f"{x:,.2f}" if isinstance(x, float) else f"{x:,}")
 
     return result_df
+
+
+
+
 
 def generate_markdown_explanation(actual_mean, actual_std, desired_mean, desired_std, shovel):
     explanation = f"""
@@ -303,9 +310,6 @@ def main():
     shovel_fill_data = load_shovel_fill_data(data, selected_shovels)
     fig = plot_distribution(shovel_fill_data, selected_shovels, selected_mean, selected_std)
     st.plotly_chart(fig, use_container_width=True)
-
-
-
 
     actual_mean = np.mean(shovel_fill_data) if shovel_fill_data else 0
     actual_std = np.std(shovel_fill_data) if shovel_fill_data else 0
@@ -399,9 +403,11 @@ def main():
 
        # ---------------------------- Tabular View ---------------------------------------------------
     # Load your truck fill rate data
-    results_df = load_truck_fill_data(data, selected_shovels)
+
 
     # Sort the DataFrame by year and month
+    results_df = load_truck_fill_data(data, selected_shovels, selected_mean, selected_std)
+
     results_df['Month'] = pd.Categorical(results_df['Month'], categories=[
         'January', 'February', 'March', 'April', 'May', 'June',
         'July', 'August', 'September', 'October', 'November', 'December', 'Total'
@@ -426,6 +432,6 @@ def main():
     """
     st.markdown(header_html, unsafe_allow_html=True)
     st.table(results_df)
-    
+
 if __name__ == '__main__':
     main()
