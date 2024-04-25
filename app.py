@@ -124,13 +124,13 @@ def process_loaded_data(data):
     return all_data
 
 def month_to_season(month):
-    if month in [12, 1, 2]:
+    if month in [1, 2, 3]:
         return 'Winter'
-    elif month in [3, 4, 5]:
+    elif month in [4, 5, 6]:
         return 'Spring'
-    elif month in [6, 7, 8]:
+    elif month in [7, 8, 9]:
         return 'Summer'
-    elif month in [9, 10, 11]:
+    elif month in [10, 11, 12]:
         return 'Fall'
 
 def create_timeseries_plot(data):
