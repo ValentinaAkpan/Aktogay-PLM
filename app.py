@@ -112,7 +112,7 @@ def plot_distribution(shovel_fill_data, shovel, desired_mean=100, desired_std=5)
 
 def process_loaded_data(data):
     all_data = pd.concat([df for df in data])
-    all_data['Time Full'] = pd.to_datetime(all_data['Time Full'], errors="coerce").dropna()
+    all_data['Time Full'] = pd.to_datetime(all_data['Time Full'], errors="coerce")
     all_data['Hour'] = all_data['Time Full'].dt.hour
     all_data['Shift'] = all_data['Hour'].apply(lambda x: 'Day' if 7 <= x < 19 else 'Night')
     all_data['Truck fill (%)'] = (all_data['Tonnage'] / all_data['Truck Factor']) * 100
@@ -121,16 +121,24 @@ def process_loaded_data(data):
     all_data['Year'] = all_data['Time Full'].dt.year
     all_data['Adjusted Hour'] = (all_data['Hour'] + 17) % 24  # Adjust the hour for plotting
     all_data = all_data.dropna(subset=['Time Full'])
+
+    # Drop rows with NaN values in the "Material" column
+    all_data = all_data.dropna(subset=['Material'])
+
+    # Drop columns with all NaN values
+    all_data = all_data.dropna(axis=1, how='all')
+
     return all_data
 
+
 def month_to_season(month):
-    if month in [1, 2, 3]:
+    if month in [12, 1, 2]:
         return 'Winter'
-    elif month in [4, 5, 6]:
+    elif month in [3, 4, 5]:
         return 'Spring'
-    elif month in [7, 8, 9]:
+    elif month in [6, 7, 8]:
         return 'Summer'
-    elif month in [10, 11, 12]:
+    elif month in [9, 10, 11]:
         return 'Fall'
 
 def create_timeseries_plot(data):
@@ -197,7 +205,6 @@ def calculate_material_increase(current_mean, current_std, desired_mean, desired
     return potential_increase * 100
 
 
-
 def load_truck_fill_data(data, shovels, selected_mean, selected_std):
     # Filter data for selected shovels
     data = data[data['Shovel'].isin(shovels)]
@@ -258,6 +265,10 @@ def load_truck_fill_data(data, shovels, selected_mean, selected_std):
         'Improvement (tonnes)': total_improvement
     }
     result_df = pd.DataFrame(all_months_data + [total_row])
+
+    # Handle missing or infinite values before rounding and integer conversion
+    result_df.replace([np.inf, -np.inf], np.nan, inplace=True)
+    result_df.dropna(inplace=True)
 
     # Round values to the nearest tonne and convert to integers
     result_df[['Current Material (tonnes)', 'Desired Material (tonnes)', 'Improvement (tonnes)']] = \
@@ -327,6 +338,9 @@ def main():
     data = data[data['Shovel'].isin(selected_shovels)]
     fig = create_timeseries_plot(data)
     st.plotly_chart(fig, use_container_width=True)
+
+    # The rest of your code remains unchanged...
+
 
     day_mean = data[data['Shift'] == 'Day']['Truck fill (%)'].mean()
     night_mean = data[data['Shift'] == 'Night']['Truck fill (%)'].mean()
