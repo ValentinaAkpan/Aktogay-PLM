@@ -212,44 +212,45 @@ def load_truck_fill_data(data, shovels, selected_mean, selected_std):
 
     # Group data by month-year
     data['Month'] = data['Time Full'].dt.strftime('%B')
+    
     data['Month-Year'] = data['Month'].astype(str) + ' ' + data['Year'].astype(str)
     data = data.sort_values(by='Year')
-
+    
     # Drop rows with missing values in 'Time Full' column
     data = data.dropna(subset=['Time Full'])
 
     # Iterate over unique month-year combinations
     for month in data['Month-Year'].unique():
         month_data = data[data['Month-Year'] == month]
+        if len(month_data) > 1:
+            # Calculate current truck fill rate and material moved
+            current_truck_fill = (month_data['Tonnage'] / month_data['Truck Factor']) * 100
+            current_material_moved = month_data['Tonnage'].sum()
         
-        # Calculate current truck fill rate and material moved
-        current_truck_fill = (month_data['Tonnage'] / month_data['Truck Factor']) * 100
-        current_material_moved = month_data['Tonnage'].sum()
-        
-        # Calculate desired material moved using calculate_material_increase() function
-        desired_material_moved = current_material_moved * (1 + calculate_material_increase(current_truck_fill.mean(), current_truck_fill.std(), selected_mean, selected_std) / 100)
-        
-        # Calculate improvement as the difference between desired and current material moved
-        improvement = desired_material_moved - current_material_moved
-        total_improvement += improvement
-
-        # Aggregate data by month-year
-        month_year_key = (month_data['Month'].iloc[0], month_data['Year'].iloc[0])
-
-        if month_year_key in month_aggregated_data:
-            month_aggregated_data[month_year_key]['Current Material (tonnes)'] += current_material_moved
-            month_aggregated_data[month_year_key]['Desired Material (tonnes)'] += desired_material_moved
-            month_aggregated_data[month_year_key]['Improvement (tonnes)'] += improvement
-        else:
-            month_aggregated_data[month_year_key] = {
-                'Month': month_data['Month'].iloc[0],
-                'Year': month_data['Year'].iloc[0],
-                'Current Truck Fill Rate': current_truck_fill.mean(),
-                'Desired Truck Fill Rate': selected_mean,
-                'Current Material (tonnes)': current_material_moved,
-                'Desired Material (tonnes)': desired_material_moved,
-                'Improvement (tonnes)': improvement
-            }
+            # Calculate desired material moved using calculate_material_increase() function
+            desired_material_moved = current_material_moved * (1 + calculate_material_increase(current_truck_fill.mean(), current_truck_fill.std(), selected_mean, selected_std) / 100)
+            
+            # Calculate improvement as the difference between desired and current material moved
+            improvement = desired_material_moved - current_material_moved
+            total_improvement += improvement
+    
+            # Aggregate data by month-year
+            month_year_key = (month_data['Month'].iloc[0], month_data['Year'].iloc[0])
+    
+            if month_year_key in month_aggregated_data:
+                month_aggregated_data[month_year_key]['Current Material (tonnes)'] += current_material_moved
+                month_aggregated_data[month_year_key]['Desired Material (tonnes)'] += desired_material_moved
+                month_aggregated_data[month_year_key]['Improvement (tonnes)'] += improvement
+            else:
+                month_aggregated_data[month_year_key] = {
+                    'Month': month_data['Month'].iloc[0],
+                    'Year': month_data['Year'].iloc[0],
+                    'Current Truck Fill Rate': current_truck_fill.mean(),
+                    'Desired Truck Fill Rate': selected_mean,
+                    'Current Material (tonnes)': current_material_moved,
+                    'Desired Material (tonnes)': desired_material_moved,
+                    'Improvement (tonnes)': improvement
+                }
 
     # Create DataFrame from aggregated data
     all_months_data = list(month_aggregated_data.values())
@@ -288,6 +289,11 @@ def main():
 
     data = load_data()
 
+    # Initialize session state to preserve selected shovel values
+    session_state = st.session_state
+    if 'selected_shovels' not in session_state:
+        session_state.selected_shovels = []
+
     # Add a global filter for material type
     all_materials = list(set([value for df in data for value in df['Material'].unique() if 'Material' in df.columns]))
     selected_materials = st.sidebar.multiselect("Select Material Type", all_materials)
@@ -301,8 +307,19 @@ def main():
 
     all_shovels = list(set([value for df in data for value in df['Shovel'].unique() if 'Shovel' in df.columns]))
     all_shovels.append('All')
+    
+    selected_shovels_series = pd.Series(session_state.selected_shovels)
+    all_shovels_series = pd.Series(all_shovels)
 
-    selected_shovels = st.sidebar.multiselect("Select Shovel", all_shovels, default=['All'])
+    if ~selected_shovels_series.isin(all_shovels_series).any():
+        st.write("WARNING !")
+        st.write("No data available for selected material! Please choose a different material or a different shovel!")
+        st.write("")
+        session_state.selected_shovels = []
+    selected_shovels = st.sidebar.multiselect("Select Shovel", all_shovels, default=session_state.selected_shovels)
+    
+    # Update session state with current selected shovel values
+    session_state.selected_shovels = selected_shovels
 
     if 'All' in selected_shovels or len(selected_shovels) == 0:
         selected_shovels = [shovel for shovel in all_shovels if shovel != 'All']
@@ -318,8 +335,8 @@ def main():
     selected_std = st.sidebar.slider("Select Standard Deviation (%)", 1, 10, 5, step=1)
 
     explanation_placeholder = st.empty()
-
     shovel_fill_data = load_shovel_fill_data(data, selected_shovels)
+
     fig = plot_distribution(shovel_fill_data, selected_shovels, selected_mean, selected_std)
     st.plotly_chart(fig, use_container_width=True)
 
