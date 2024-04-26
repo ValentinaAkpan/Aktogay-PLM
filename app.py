@@ -311,7 +311,7 @@ def main():
     selected_shovels_series = pd.Series(session_state.selected_shovels)
     all_shovels_series = pd.Series(all_shovels)
 
-    if ~selected_shovels_series.isin(all_shovels_series).any():
+    if ~selected_shovels_series.isin(all_shovels_series).any() and session_state.selected_shovels != []:
         st.write("WARNING !")
         st.write("No data available for selected material! Please choose a different material or a different shovel!")
         st.write("")
