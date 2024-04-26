@@ -288,11 +288,6 @@ def main():
 
     data = load_data()
 
-    # Initialize session state to preserve selected shovel values
-    session_state = st.session_state
-    if 'selected_shovels' not in session_state:
-        session_state.selected_shovels = []
-
     # Add a global filter for material type
     all_materials = list(set([value for df in data for value in df['Material'].unique() if 'Material' in df.columns]))
     selected_materials = st.sidebar.multiselect("Select Material Type", all_materials)
@@ -307,10 +302,7 @@ def main():
     all_shovels = list(set([value for df in data for value in df['Shovel'].unique() if 'Shovel' in df.columns]))
     all_shovels.append('All')
 
-    selected_shovels = st.sidebar.multiselect("Select Shovel", all_shovels, default=session_state.selected_shovels)
-
-    # Update session state with current selected shovel values
-    session_state.selected_shovels = selected_shovels
+    selected_shovels = st.sidebar.multiselect("Select Shovel", all_shovels, default=['All'])
 
     if 'All' in selected_shovels or len(selected_shovels) == 0:
         selected_shovels = [shovel for shovel in all_shovels if shovel != 'All']
