@@ -53,29 +53,63 @@ def plot_distribution(shovel_fill_data, shovel, desired_mean=100, desired_std=5)
         st.write("No data available for the selected shovel(s).")
         return
 
+    # Calculate actual mean and standard deviation from data
     actual_mean = np.mean(shovel_fill_data)
     actual_std = np.std(shovel_fill_data)
 
+    # Range for the x-axis
     x_min = 65
     x_max = 125
     x_range = np.linspace(x_min, x_max, 200)
 
+    # Probability density functions for actual and desired distributions
     actual_distribution_y = norm.pdf(x_range, actual_mean, actual_std)
     desired_distribution_y = norm.pdf(x_range, desired_mean, desired_std)
 
+    # Annotation text
     mean_std_text = (f"<b>Actual Mean:</b> {actual_mean:.2f}%<br>"
                      f"<b>Actual Std Dev:</b> {actual_std:.2f}%<br>"
                      f"<b>Desired Mean:</b> {desired_mean}%<br>"
                      f"<b>Desired Std Dev:</b> {desired_std}%")
 
+    # Create the figure
     fig = go.Figure()
 
-    fig.add_trace(go.Scatter(x=x_range, y=actual_distribution_y, mode='lines', name='Actual Distribution', line=dict(color='red')))
-    fig.add_trace(go.Scatter(x=x_range, y=desired_distribution_y, mode='lines', name='Desired Distribution', line=dict(color='#00B7F1')))
+    # Add the actual distribution (red line)
+    fig.add_trace(go.Scatter(
+        x=x_range, 
+        y=actual_distribution_y, 
+        mode='lines', 
+        name='Actual Distribution', 
+        line=dict(color='red')
+    ))
 
-    fig.add_trace(go.Scatter(x=[actual_mean, actual_mean], y=[0, max(actual_distribution_y)], mode='lines', name='Actual Mean', line=dict(color='red', dash='dash')))
-    fig.add_trace(go.Scatter(x=[desired_mean, desired_mean], y=[0, max(desired_distribution_y)], mode='lines', name='Desired Mean', line=dict(color='#00B7F1', dash='dash')))
+    # Add the desired distribution (blue line)
+    fig.add_trace(go.Scatter(
+        x=x_range, 
+        y=desired_distribution_y, 
+        mode='lines', 
+        name='Desired Distribution', 
+        line=dict(color='#00B7F1')
+    ))
 
+    # Add vertical lines for means
+    fig.add_trace(go.Scatter(
+        x=[actual_mean, actual_mean], 
+        y=[0, max(actual_distribution_y)], 
+        mode='lines', 
+        name='Actual Mean', 
+        line=dict(color='red', dash='dash')
+    ))
+    fig.add_trace(go.Scatter(
+        x=[desired_mean, desired_mean], 
+        y=[0, max(desired_distribution_y)], 
+        mode='lines', 
+        name='Desired Mean', 
+        line=dict(color='#00B7F1', dash='dash')
+    ))
+
+    # Add annotation for stats
     fig.add_annotation(
         text=mean_std_text,
         align='left',
@@ -91,13 +125,14 @@ def plot_distribution(shovel_fill_data, shovel, desired_mean=100, desired_std=5)
         yanchor='top'
     )
 
+    # Update layout
     fig.update_layout(
         title=f'Actual vs Desired Truck Fill Distribution for {shovel}',
         xaxis_title='Truck Fill %',
         yaxis_title='Probability Density',
         legend_title='Legend',
-        height=500,  # Adjusted height to fit the screen
-        width=900,   # Adjusted width to fit the screen
+        height=500,
+        width=900,
         legend=dict(
             x=1.05,
             y=0.5,
@@ -109,6 +144,7 @@ def plot_distribution(shovel_fill_data, shovel, desired_mean=100, desired_std=5)
     )
 
     return fig
+
 
 def process_loaded_data(data):
     all_data = pd.concat([df for df in data])
