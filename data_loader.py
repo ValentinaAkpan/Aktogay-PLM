@@ -1,13 +1,22 @@
-
 import pandas as pd
 import streamlit as st
 
 CSV_FILES = [
-    'Load DetailJanuary2023', 'Load DetailFebruary2023', 'Load DetailMarch2023',
-    'Load DetailApril2023', 'Load DetailMay2023', 'Load DetailJUNE2023',
-    'Load DetailJuly2023', 'Load DetailAugust2023.1-15', 'Load DetailAugust2023.16-31',
-    'Load DetailSeptember2023', 'Load DetailNovember1-15.2023', 'Load DetailNovember16-30.2023',
-    'Load DetailDecember1-15.2023', 'Load DetailDecember16-31.2023'
+    'Cleaned_Load DetailJanuary2023',
+    'Cleaned_Load DetailFebruary2023',
+    'Cleaned_Load DetailMarch2023',
+    'Cleaned_Load DetailApril2023',
+    'Cleaned_Load DetailMay2023',
+    'Cleaned_Load DetailJUNE2023',
+    'Cleaned_Load DetailJuly2023',
+    'Cleaned_Load DetailAugust2023.1-15',
+    'Cleaned_Load DetailAugust2023.16-31',
+    'Cleaned_Load DetailSeptember2023',
+    'Load DetailOctober2023',  # Added
+    'Cleaned_Load DetailNovember1-15.2023',
+    'Cleaned_Load DetailNovember16-30.2023',
+    'Cleaned_Load DetailDecember1-15.2023',
+    'Cleaned_Load DetailDecember16-31.2023'
 ]
 
 def load_data():
@@ -19,6 +28,8 @@ def load_data():
             if all(col in df for col in ['Tonnage', 'Truck Factor', 'Shovel']):
                 df = df[df['Truck Factor'] > 0]
                 data.append(df)
+            else:
+                st.warning(f"File {file}.csv missing required columns")
         except FileNotFoundError:
             st.warning(f"CSV file not found: {file}")
     return data
